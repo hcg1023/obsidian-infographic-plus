@@ -46,32 +46,53 @@
 	user-select: none;
 }
 
-/* 拖拽调宽手柄（两侧） */
+/* 拖拽手柄（四向：左右调宽、上下调高） */
 .infographic-resize-handle {
 	position: absolute;
-	top: 0;
-	bottom: 0;
-	width: 12px;
-	cursor: ew-resize;
 	opacity: 0;
 	z-index: 5;
 }
 
+.infographic-resize-left, .infographic-resize-right {
+	top: 0;
+	bottom: 0;
+	width: 12px;
+	cursor: ew-resize;
+}
 .infographic-resize-left { left: 0; }
 .infographic-resize-right { right: 0; }
+
+.infographic-resize-top, .infographic-resize-bottom {
+	left: 0;
+	right: 0;
+	height: 12px;
+	cursor: ns-resize;
+}
+.infographic-resize-top { top: 0; }
+.infographic-resize-bottom { bottom: 0; }
 
 .infographic-wrapper:hover .infographic-resize-handle,
 .infographic-wrapper.infographic-resizing .infographic-resize-handle {
 	opacity: 1;
 }
 
-.infographic-resize-handle::before {
+.infographic-resize-left::before, .infographic-resize-right::before {
 	content: "";
 	position: absolute;
 	top: 0;
 	bottom: 0;
 	left: 5px;
 	width: 2px;
+	background: var(--background-modifier-border);
+}
+
+.infographic-resize-top::before, .infographic-resize-bottom::before {
+	content: "";
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 5px;
+	height: 2px;
 	background: var(--background-modifier-border);
 }
 

@@ -3,7 +3,7 @@ import { Editor, MarkdownPostProcessorContext, Notice, Plugin } from "obsidian";
 import type { Infographic } from "@antv/infographic";
 import { DEFAULT_SETTINGS, ErrorBehavior, InfographicSettingTab, InfographicSettings, ThemeSetting } from "./settings";
 import { parseInfographicSpec, showParseError } from "./parser";
-import { getFenceAlign, parseHeightParam, parseWidthParam, persistBlockWidth, persistFenceUpdate, resolveFenceText, setFenceAlign } from "./fence";
+import { getFenceAlign, parseHeightParam, parseWidthParam, persistBlockHeight, persistBlockWidth, persistFenceUpdate, resolveFenceText, setFenceAlign } from "./fence";
 import { FullscreenModal, InfographicRenderChild } from "./renderer";
 import { copyImageToClipboard, createErrorPlaceholder, createToolbar, ExportModal, SourceCodeModal } from "./ui";
 import type { ToolbarControls } from "./ui";
@@ -96,6 +96,7 @@ export default class InfographicPlugin extends Plugin {
 			explicitWidth: fenceWidth ?? undefined,
 			explicitHeight: fenceHeight ?? undefined,
 			onWidthCommit: (width) => persistBlockWidth(this.app, ctx, el, source, width),
+			onHeightCommit: (height) => persistBlockHeight(this.app, ctx, el, source, height),
 			onRenderError: (message) => this.handleError(el, message, source),
 			onPanZoomChange: (state) => toolbarControls?.setZoomPercent(state.scale * 100),
 		});

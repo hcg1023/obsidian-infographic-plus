@@ -16,6 +16,7 @@ export interface RenderOptions {
 	/** Fence-level height override in px (```infographic height=N) */
 	explicitHeight?: number;
 	onWidthCommit?: (width: number) => void;
+	onHeightCommit?: (height: number) => void;
 	onRenderError?: (message: string) => void;
 	/** 缩放/平移状态变化回调（Task 7 工具栏用于刷新百分比标签）。 */
 	onPanZoomChange?: (state: PanZoomState) => void;
@@ -41,6 +42,7 @@ interface ParsedInfographicConfig {
 
 const DEFAULT_ASPECT_RATIO = 4 / 3;
 const MIN_DRAG_WIDTH = 200;
+const MIN_DRAG_HEIGHT = 100;
 
 /**
  * 创建并渲染一个 Infographic 实例（JSON 走 parse+strip，DSL 直接 render）。
@@ -254,15 +256,17 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 	}
 
 	/**
-	 * Drag handles on both sides of the block: dragging adjusts the wrapper
-	 * width, the ResizeObserver keeps the canvas in sync. The final width is
-	 * persisted by the host via onWidthCommit.
+	 * Drag handles on all four sides of the block: horizontal handles adjust
+	 * the wrapper width, vertical ones the height. The ResizeObserver keeps
+	 * the canvas in sync while dragging. Final sizes are persisted by the
+	 * host via onWidthCommit / onHeightCommit.
 	 */
 	private setupResizeHandles(): void {
 		const wrapper = this.containerEl.closest<HTMLElement>(".infographic-wrapper");
 		if (!wrapper) return;
 
-		for (const side of ["left", "right"] as const) {
+		for (const side of ["left", "right", "top", "bottom"] as const) {
+			const isVertical = side === "top" || side === "bottom";
 			const handle = wrapper.createDiv({cls: `infographic-resize-handle infographic-resize-${side}`});
 			handle.setAttribute("aria-hidden", "true");
 			this.registerDomEvent(handle, "pointerdown", (down: PointerEvent) => {
@@ -271,8 +275,11 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 				down.preventDefault();
 				const maxWidth = wrapper.parentElement?.clientWidth ?? wrapper.clientWidth;
 				const startWidth = wrapper.clientWidth || maxWidth;
+				const startHeight = wrapper.clientHeight || startWidth / this.aspectRatio;
 				const startX = down.clientX;
+				const startY = down.clientY;
 				let latestWidth = startWidth;
+				let latestHeight = startHeight;
 				let frame: number | null = null;
 				wrapper.addClass("infographic-resizing");
 				try {
@@ -283,12 +290,22 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 
 				const apply = () => {
 					frame = null;
-					this.applyWrapperWidth(wrapper, latestWidth);
+					if (isVertical) {
+						wrapper.style.height = `${latestHeight}px`;
+					} else {
+						this.applyWrapperWidth(wrapper, latestWidth);
+					}
 				};
 				const onMove = (move: PointerEvent) => {
-					const dx = move.clientX - startX;
-					const raw = side === "left" ? startWidth - dx : startWidth + dx;
-					latestWidth = Math.max(MIN_DRAG_WIDTH, Math.min(maxWidth, Math.round(raw)));
+					if (isVertical) {
+						const dy = move.clientY - startY;
+						const raw = side === "top" ? startHeight - dy : startHeight + dy;
+						latestHeight = Math.max(MIN_DRAG_HEIGHT, Math.round(raw));
+					} else {
+						const dx = move.clientX - startX;
+						const raw = side === "left" ? startWidth - dx : startWidth + dx;
+						latestWidth = Math.max(MIN_DRAG_WIDTH, Math.min(maxWidth, Math.round(raw)));
+					}
 					if (frame === null) {
 						const win = wrapper.ownerDocument.defaultView;
 						frame = win ? win.requestAnimationFrame(apply) : (apply(), null);
@@ -304,12 +321,21 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 					}
 					wrapper.removeClass("infographic-resizing");
 					this.isResizing = false;
-					this.applyWrapperWidth(wrapper, latestWidth);
-					// 拖拽期间 RO 被门控，松手一次性按新宽度重渲染
-					if (this.infographic) {
-						this.infographic.update({ width: latestWidth, height: latestWidth / this.aspectRatio });
+					if (isVertical) {
+						wrapper.style.height = `${latestHeight}px`;
+						this.options.explicitHeight = latestHeight; // 后续 RO/resizeToFit 尊重新高度
+						if (this.infographic) {
+							this.infographic.update({ height: latestHeight });
+						}
+						this.options.onHeightCommit?.(latestHeight);
+					} else {
+						this.applyWrapperWidth(wrapper, latestWidth);
+						// 拖拽期间 RO 被门控，松手一次性按新宽度重渲染
+						if (this.infographic) {
+							this.infographic.update({ width: latestWidth, height: this.options.explicitHeight ?? latestWidth / this.aspectRatio });
+						}
+						this.options.onWidthCommit?.(latestWidth);
 					}
-					this.options.onWidthCommit?.(latestWidth);
 				};
 				handle.addEventListener("pointermove", onMove);
 				handle.addEventListener("pointerup", onEnd);

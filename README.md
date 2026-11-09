@@ -116,7 +116,7 @@ The opening fence line accepts optional parameters:
 ````
 
 - `width=N` — cap the rendering width at `N` pixels (minimum 200). When absent, the block is responsive and fills the available note width.
-- `height=N` — fix the block height at `N` pixels (minimum 100). Can be used independently of `width=N`, e.g. ```` ```infographic height=360 ```` .
+- `height=N` — fix the block height at `N` pixels (minimum 100). Can be used independently of `width=N`, e.g. ```` ```infographic height=360 ````. You can also drag the top/bottom edge handles to adjust the height; on release the fence line is rewritten with `height=N` (same as width).
 - `align=center` — center the block horizontally (default is left-aligned).
 
 Both parameters are also editable interactively: drag the resize handles on the sides of a block to change its width, and use the toolbar center-align button. The change is persisted back into the fence line of your note.

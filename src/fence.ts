@@ -210,3 +210,13 @@ export function persistBlockWidth(
 ): void {
 	persistFenceUpdate(app, ctx, el, source, (fence) => setFenceWidth(fence, width));
 }
+
+export function persistBlockHeight(
+	app: App,
+	ctx: MarkdownPostProcessorContext,
+	el: HTMLElement,
+	source: string,
+	height: number,
+): void {
+	persistFenceUpdate(app, ctx, el, source, (fence) => setFenceHeight(fence, height));
+}
