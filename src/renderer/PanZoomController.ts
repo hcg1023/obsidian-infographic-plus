@@ -101,7 +101,7 @@ export class PanZoomController {
 		options.viewportEl.addEventListener("wheel", this.onWheel, { passive: false });
 		options.viewportEl.addEventListener("pointerdown", this.onPointerDown);
 		options.contentEl.addEventListener("dblclick", this.onDblClick);
-		this.options.viewportEl.setCssProps({ "touch-action": (this.isZoomed() || this.options.wheelMode === "always") ? "none" : "pan-y" });
+		this.options.viewportEl.classList.toggle("infographic-touch-locked", this.isZoomed() || this.options.wheelMode === "always");
 	}
 
 	getState(): PanZoomState {
@@ -154,7 +154,7 @@ export class PanZoomController {
 		vp.removeEventListener("pointerdown", this.onPointerDown);
 		this.options.contentEl.removeEventListener("dblclick", this.onDblClick);
 		this.options.contentEl.setCssProps({ transform: "" });
-		this.options.viewportEl.setCssProps({ "touch-action": "" });
+		this.options.viewportEl.classList.remove("infographic-touch-locked");
 		this.options.viewportEl.classList.remove("infographic-panning");
 	}
 
@@ -179,10 +179,9 @@ export class PanZoomController {
 
 	private paint(): void {
 		const { scale, x, y } = this.state;
-		this.options.contentEl.setCssProps({ "transform-origin": "0 0" });
 		this.options.contentEl.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
-		// fit 态把垂直滑动还给笔记（pan-y）；放大后才独占触摸
-		this.options.viewportEl.setCssProps({ "touch-action": (this.isZoomed() || this.options.wheelMode === "always") ? "none" : "pan-y" });
+		// fit 态把垂直滑动还给笔记（pan-y，见 .infographic-viewport 基类）；放大后锁定触摸
+		this.options.viewportEl.classList.toggle("infographic-touch-locked", this.isZoomed() || this.options.wheelMode === "always");
 		this.options.onChange?.(this.state);
 	}
 

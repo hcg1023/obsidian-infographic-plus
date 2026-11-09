@@ -10,10 +10,15 @@
 	margin-inline: auto;
 }
 
-/* viewport：裁剪层。fit 态 touch-action 由 controller 写为 pan-y */
+/* viewport：裁剪层。fit 态 touch-action: pan-y（垂直滑动还给笔记）；放大/全屏时由 controller 加 .infographic-touch-locked 锁定 */
 .infographic-viewport {
 	position: relative;
 	overflow: hidden;
+	touch-action: pan-y;
+}
+
+.infographic-viewport.infographic-touch-locked {
+	touch-action: none;
 }
 
 /* content：被 transform 的层 */
