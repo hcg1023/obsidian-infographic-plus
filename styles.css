@@ -1,8 +1,162 @@
-/*
+/* antv-infographic plugin styles */
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+/* 渲染块外层：定位上下文 + 手柄/工具栏的锚 */
+.infographic-wrapper {
+	position: relative;
+	max-width: 100%;
+}
 
-If your plugin does not need CSS, delete this file.
+.infographic-wrapper.infographic-centered {
+	margin-inline: auto;
+}
 
-*/
+/* viewport：裁剪层。fit 态 touch-action 由 controller 写为 pan-y */
+.infographic-viewport {
+	position: relative;
+	overflow: hidden;
+}
+
+/* content：被 transform 的层 */
+.infographic-content {
+	transform-origin: 0 0;
+	width: 100%;
+}
+
+.infographic-viewport.infographic-panning .infographic-content,
+.infographic-panning {
+	cursor: grab;
+}
+
+.infographic-panning:active {
+	cursor: grabbing;
+}
+
+/* 缩放百分比标签 */
+.infographic-zoom-label {
+	min-width: 3.2em;
+	text-align: center;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	align-self: center;
+	user-select: none;
+}
+
+/* 拖拽调宽手柄（两侧） */
+.infographic-resize-handle {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	width: 12px;
+	cursor: ew-resize;
+	opacity: 0;
+	z-index: 5;
+}
+
+.infographic-resize-left { left: -6px; }
+.infographic-resize-right { right: -6px; }
+
+.infographic-wrapper:hover .infographic-resize-handle,
+.infographic-wrapper.infographic-resizing .infographic-resize-handle {
+	opacity: 1;
+}
+
+.infographic-resize-handle::before {
+	content: "";
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 5px;
+	width: 2px;
+	background: var(--background-modifier-border);
+}
+
+.infographic-resize-handle:hover::before {
+	background: var(--interactive-accent);
+}
+
+.infographic-wrapper.infographic-resizing {
+	user-select: none;
+}
+
+/* 错误态 */
+.infographic-error-block {
+	border: 1px solid var(--background-modifier-error-border);
+	border-radius: var(--radius-s);
+	padding: 0.75em;
+}
+
+.infographic-error-header {
+	display: flex;
+	align-items: center;
+	gap: 0.4em;
+	color: var(--text-error);
+	margin-bottom: 0.5em;
+}
+
+.infographic-error-icon {
+	display: inline-flex;
+	flex: none;
+}
+
+.infographic-error-icon svg {
+	width: 16px;
+	height: 16px;
+}
+
+.infographic-error-details-btn {
+	margin-bottom: 0.5em;
+	padding: 0.25em 0.75em;
+	border-radius: var(--radius-s);
+}
+
+.infographic-error-source {
+	max-height: 300px;
+	overflow: auto;
+}
+
+.infographic-error-message {
+	color: var(--text-error);
+	padding: 0.5em;
+}
+
+/* Loading */
+.infographic-loading {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5em;
+	min-height: 120px;
+	color: var(--text-muted);
+}
+
+.infographic-loading::before {
+	content: "";
+	width: 14px;
+	height: 14px;
+	border: 2px solid var(--text-faint);
+	border-top-color: var(--interactive-accent);
+	border-radius: 50%;
+	animation: infographic-spin 0.8s linear infinite;
+}
+
+@keyframes infographic-spin {
+	to { transform: rotate(360deg); }
+}
+
+.infographic-hidden {
+	display: none;
+}
+
+/* PDF/打印：隐藏交互件（无 print 管线，直接打印当前渲染） */
+@media print {
+	.infographic-toolbar,
+	.infographic-resize-handle {
+		display: none !important;
+	}
+	.infographic-viewport {
+		overflow: visible;
+	}
+	.infographic-wrapper {
+		break-inside: avoid;
+	}
+}

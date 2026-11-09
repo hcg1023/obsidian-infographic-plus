@@ -4,7 +4,8 @@ import { MarkdownRenderChild } from "obsidian";
 import { Infographic, type InfographicOptions } from "@antv/infographic";
 import type { ThemeSetting } from "../settings";
 import { createErrorPlaceholder } from "../ui/ErrorPlaceholder";
-
+import { PanZoomController } from "./PanZoomController";
+import type { PanZoomState } from "./PanZoomController";
 export interface RenderOptions {
 	content: string;
 	isJson: boolean;
@@ -15,6 +16,8 @@ export interface RenderOptions {
 	/** Called after a drag-resize commits, so the host can persist the width. */
 	onWidthCommit?: (width: number) => void;
 	onRenderError?: (message: string) => void;
+	/** 缩放/平移状态变化回调（Task 7 工具栏用于刷新百分比标签）。 */
+	onPanZoomChange?: (state: PanZoomState) => void;
 }
 
 export interface RenderPayload {
@@ -37,8 +40,16 @@ interface ParsedInfographicConfig {
 const DEFAULT_ASPECT_RATIO = 4 / 3;
 const MIN_DRAG_WIDTH = 200;
 
-/** 创建并渲染一个 Infographic 实例（JSON 走 parse+strip，DSL 直接 render）。 */
-export function renderInfographicInto(container: HTMLElement, payload: RenderPayload): Infographic {
+/**
+ * 创建并渲染一个 Infographic 实例（JSON 走 parse+strip，DSL 直接 render）。
+ * onInit 在构造之后、render() 之前调用——用于提前订阅 "error" 事件，
+ * 防止库在 render() 内同步 emit 时丢事件（Task 9 全屏 Modal 同样应经此订阅）。
+ */
+export function renderInfographicInto(
+	container: HTMLElement,
+	payload: RenderPayload,
+	onInit?: (instance: Infographic) => void,
+): Infographic {
 	if (payload.isJson) {
 		const parsed = JSON.parse(payload.content) as ParsedInfographicConfig;
 		const { width: jsonWidth, height: jsonHeight, theme: jsonTheme, ...rest } = parsed;
@@ -49,10 +60,12 @@ export function renderInfographicInto(container: HTMLElement, payload: RenderPay
 			theme: jsonTheme ?? payload.theme,
 			...rest,
 		});
+		onInit?.(instance);
 		instance.render();
 		return instance;
 	}
 	const instance = new Infographic({ container, width: payload.width, height: payload.height, theme: payload.theme });
+	onInit?.(instance);
 	instance.render(payload.content);
 	return instance;
 }
@@ -65,6 +78,8 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 	private aspectRatio: number = DEFAULT_ASPECT_RATIO;
 	private started: boolean = false;
 	private isResizing = false;
+	private contentEl: HTMLElement | null = null;
+	private panZoom: PanZoomController | null = null;
 
 	constructor(containerEl: HTMLElement, options: RenderOptions) {
 		super(containerEl);
@@ -83,6 +98,22 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 		return this.infographic;
 	}
 
+	getPanZoom(): PanZoomController | null {
+		return this.panZoom;
+	}
+
+	zoomIn(): void {
+		this.panZoom?.zoomBy(1.25);
+	}
+
+	zoomOut(): void {
+		this.panZoom?.zoomBy(1 / 1.25);
+	}
+
+	fitWidth(): void {
+		this.panZoom?.reset();
+	}
+
 	/**
 	 * Some Obsidian render pipelines (notably PDF export) may not invoke
 	 * MarkdownRenderChild lifecycle hooks. This makes rendering idempotent and callable.
@@ -94,6 +125,12 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 		this.render();
 		this.setupResizeObserver();
 		this.setupResizeHandles();
+		this.panZoom = new PanZoomController({
+			viewportEl: this.containerEl,
+			contentEl: this.contentEl!,
+			wheelMode: "when-zoomed",
+			onChange: (state) => this.options.onPanZoomChange?.(state),
+		});
 	}
 
 	private getTheme(): string | undefined {
@@ -105,8 +142,9 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 
 	private showLoading(): void {
 		this.containerEl.empty();
-		this.containerEl.addClass("infographic-container");
-		this.loadingEl = this.containerEl.createDiv({cls: "infographic-loading"});
+		this.containerEl.addClass("infographic-viewport");
+		this.contentEl = this.containerEl.createDiv({ cls: "infographic-content" });
+		this.loadingEl = this.contentEl.createDiv({ cls: "infographic-loading" });
 		this.loadingEl.setText("Loading infographic...");
 	}
 
@@ -124,20 +162,25 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 		const height = width / DEFAULT_ASPECT_RATIO;
 
 		try {
-			this.infographic = renderInfographicInto(this.containerEl, {
-				content: this.options.content,
-				isJson: this.options.isJson,
-				theme,
-				width,
-				height,
-				explicitWidth: this.options.explicitWidth,
-			});
-			this.infographic.on("error", (error: unknown) => {
-				const message = error instanceof Error ? error.message : String(error);
-				console.error("[Infographic Plugin] Render error event:", message);
-				this.hideLoading();
-				this.reportRenderError(message);
-			});
+			this.infographic = renderInfographicInto(
+				this.contentEl!,
+				{
+					content: this.options.content,
+					isJson: this.options.isJson,
+					theme,
+					width,
+					height,
+					explicitWidth: this.options.explicitWidth,
+				},
+				(instance) => {
+					instance.on("error", (error: unknown) => {
+						const message = error instanceof Error ? error.message : String(error);
+						console.error("[Infographic Plugin] Render error event:", message);
+						this.hideLoading();
+						this.reportRenderError(message);
+					});
+				},
+			);
 			this.hideLoading();
 			this.updateAspectRatioFromSVG();
 			this.scheduleRenderSanityCheck();
@@ -163,6 +206,7 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 					if (width > 0) {
 						const height = width / this.aspectRatio;
 						this.infographic.update({ width, height });
+						this.panZoom?.relayout({ resetIfZoomed: true });
 					}
 				}
 			}
@@ -181,6 +225,7 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 	}
 
 	private renderError(message: string): void {
+		this.destroyInfographic();
 		this.containerEl.empty();
 		createErrorPlaceholder(this.containerEl, { message: `Failed to render infographic: ${message}` });
 	}
@@ -217,6 +262,7 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 			handle.setAttribute("aria-hidden", "true");
 			this.registerDomEvent(handle, "pointerdown", (down: PointerEvent) => {
 				this.isResizing = true;
+				this.panZoom?.reset();
 				down.preventDefault();
 				const maxWidth = wrapper.parentElement?.clientWidth ?? wrapper.clientWidth;
 				const startWidth = wrapper.clientWidth || maxWidth;
@@ -317,6 +363,8 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 	}
 
 	private cleanup(): void {
+		this.panZoom?.destroy();
+		this.panZoom = null;
 		if (this.resizeObserver) {
 			this.resizeObserver.disconnect();
 			this.resizeObserver = null;
