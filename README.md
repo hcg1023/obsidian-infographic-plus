@@ -132,7 +132,7 @@ The rendered infographic is interactive:
 | Wheel after zooming in | Keeps zooming (wheel is captured by the block) |
 | Drag while zoomed | Pan the diagram |
 | Double-click | Reset to fit-width state |
-| Toolbar `+` / `−` / fit buttons | Zoom in, zoom out, or reset |
+| Toolbar `+` / `−` / fit buttons | Zoom in, zoom out, or reset zoom; **Fit to width** also restores the block to the full note-column width by clearing the `width=N` / `height=N` parameters (session-only in reading mode) |
 | Fullscreen viewer | Wheel always zooms; drag pans; export the full image or copy the source |
 
 Open the fullscreen viewer via the toolbar maximize button. The `infographic: Insert infographic template` command inserts a ready-made template into the current note.

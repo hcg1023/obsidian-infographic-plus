@@ -17,6 +17,8 @@ export interface RenderOptions {
 	explicitHeight?: number;
 	onWidthCommit?: (width: number) => void;
 	onHeightCommit?: (height: number) => void;
+	/** 适应宽度：请求宿主清除 fence 的 width/height 参数（写回源码模式生效）。 */
+	onFitToWidth?: () => void;
 	onRenderError?: (message: string) => void;
 	/** 缩放/平移状态变化回调（Task 7 工具栏用于刷新百分比标签）。 */
 	onPanZoomChange?: (state: PanZoomState) => void;
@@ -54,7 +56,7 @@ export function getCachedBlockHeight(content: string): number | null {
 
 function cacheBlockHeight(content: string, height: number): void {
 	if (blockHeightCache.size >= BLOCK_HEIGHT_CACHE_LIMIT && !blockHeightCache.has(content)) {
-		const oldest: string | undefined = blockHeightCache.keys().next().value;
+		const oldest = blockHeightCache.keys().next().value as string | undefined;
 		if (oldest !== undefined) blockHeightCache.delete(oldest);
 	}
 	blockHeightCache.set(content, height);
@@ -131,8 +133,24 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 		this.panZoom?.zoomBy(1 / 1.25);
 	}
 
+	/** 适应宽度：重置缩放，并请求宿主清除 fence 宽高参数（本地恢复见 fitToContainer） */
 	fitWidth(): void {
 		this.panZoom?.reset();
+		this.fitToContainer();
+		this.options.onFitToWidth?.();
+	}
+
+	/** 本地立即恢复自适应宽度（阅读模式/写回被拒时也生效，仅会话级） */
+	private fitToContainer(): void {
+		const wrapper = this.containerEl.closest<HTMLElement>(".infographic-wrapper");
+		wrapper?.style.removeProperty("width");
+		this.options.explicitWidth = undefined;
+		this.options.explicitHeight = undefined;
+		if (!this.infographic) return;
+		const width = this.containerEl.clientWidth || wrapper?.clientWidth || 800;
+		const height = width / this.aspectRatio;
+		this.infographic.update({ width, height });
+		this.rememberHeight();
 	}
 
 	/**

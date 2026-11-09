@@ -38,6 +38,18 @@ export function setFenceHeight(fence: string, height: number): string {
 	return `${match[1]}${sep}infographic${rest ? ` ${rest}` : ""} height=${height}`;
 }
 
+/** Remove the `width=N` / `height=N` parameters from a fence line, preserving others. */
+export function clearFenceSize(fence: string): string {
+	const match = fence.match(/^(`{3,})(\s*)infographic\b(.*)$/);
+	if (!match) return fence;
+	const sep = match[2] ?? " ";
+	const rest = (match[3] ?? "")
+		.replace(/\s+width\s*=\s*\d+/i, "")
+		.replace(/\s+height\s*=\s*\d+/i, "")
+		.trim();
+	return `${match[1]}${sep}infographic${rest ? ` ${rest}` : ""}`;
+}
+
 /**
  * Set or remove the `align=center|left` parameter on an ```infographic fence
  * line, preserving every other parameter. `null` removes the parameter so the
