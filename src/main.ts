@@ -1,24 +1,169 @@
-import { Menu, Notice, Plugin } from 'obsidian';
-import { Infographic, InfographicOptions } from '@antv/infographic';
-import { DEFAULT_SETTINGS, InfographicSettings, InfographicSettingTab, ThemeSetting } from './settings';
+import { Editor, MarkdownPostProcessorContext, Notice, Plugin } from "obsidian";
+import type { Infographic } from "@antv/infographic";
+import { DEFAULT_SETTINGS, ErrorBehavior, InfographicSettingTab, InfographicSettings, ThemeSetting } from "./settings";
+import { parseInfographicSpec, showParseError } from "./parser";
+import { getFenceAlign, parseWidthParam, persistBlockWidth, persistFenceUpdate, resolveFenceText, setFenceAlign } from "./fence";
+import { InfographicRenderChild } from "./renderer";
+import { copyImageToClipboard, createErrorPlaceholder, createToolbar, ExportModal, SourceCodeModal } from "./ui";
+import type { ToolbarControls } from "./ui";
+
+const INFOGRAPHIC_TEMPLATE = `{
+  "template": "list-row-simple-horizontal-arrow",
+  "data": {
+    "items": [
+      { "label": "Step 1", "desc": "Description" },
+      { "label": "Step 2", "desc": "Description" },
+      { "label": "Step 3", "desc": "Description" }
+    ]
+  }
+}`;
 
 export default class InfographicPlugin extends Plugin {
 	settings: InfographicSettings;
 
-	async onload() {
+	async onload(): Promise<void> {
 		await this.loadSettings();
-
-		// 添加设置选项卡
 		this.addSettingTab(new InfographicSettingTab(this.app, this));
+		this.registerMarkdownCodeBlockProcessor("infographic", (source, el, ctx) => {
+			void this.processInfographicBlock(source, el, ctx);
+		});
+		this.registerCommands();
+	}
 
-		// 注册 infographic 代码块处理器
-		this.registerMarkdownCodeBlockProcessor('infographic', (content, el, ctx) => {
-			this.renderInfographic(content, el);
+	private registerCommands(): void {
+		this.addCommand({
+			id: "insert-template",
+			name: "Insert infographic template",
+			editorCallback: (editor: Editor) => {
+				const cursor = editor.getCursor();
+				const template = "```infographic\n" + INFOGRAPHIC_TEMPLATE + "\n```\n";
+				editor.replaceRange(template, cursor);
+				editor.setCursor({ line: cursor.line + 2, ch: 0 });
+			},
 		});
 	}
 
-	onunload() {
-		// 清理工作由 Obsidian 自动处理
+	private isDarkMode(): boolean {
+		return this.app.workspace.containerEl.ownerDocument.body.classList.contains("theme-dark");
+	}
+
+	/** auto 主题在此刻解析为 light/dark（每次渲染/开全屏时现取，切主题后重渲即生效） */
+	private resolveTheme(): string | undefined {
+		if (this.settings.theme === "auto") {
+			return this.isDarkMode() ? "dark" : "light";
+		}
+		return this.settings.theme;
+	}
+
+	private async processInfographicBlock(
+		source: string,
+		el: HTMLElement,
+		ctx: MarkdownPostProcessorContext,
+	): Promise<void> {
+		const result = parseInfographicSpec(source);
+		if (!result.success) {
+			console.error("[Infographic Plugin] Parse error:", result.error, { source: source.substring(0, 200) });
+			showParseError(result.error);
+			this.handleError(el, result.error, source);
+			return;
+		}
+
+		const container = el.createDiv({ cls: "infographic-wrapper" });
+
+		// fence 参数：width=N（渲染宽度上限）、align=center|left（水平对齐，缺省左对齐）
+		const fence = resolveFenceText(this.app, ctx, el, source);
+		const fenceWidth = fence ? parseWidthParam(fence) : null;
+		if (fenceWidth !== null) {
+			const available = el.clientWidth || fenceWidth;
+			container.style.width = `${Math.min(fenceWidth, available)}px`;
+			container.addClass("infographic-has-width");
+		}
+		const fenceAlign = fence ? getFenceAlign(fence) : null;
+		let centered = fenceAlign === "center";
+		container.toggleClass("infographic-centered", centered);
+
+		// 缩放百分比实时显示：toolbar 在 renderChild 之后创建，先声明后由闭包引用
+		let toolbarControls: ToolbarControls | null = null;
+
+		const renderChild = new InfographicRenderChild(container, {
+			content: result.content,
+			isJson: result.isJson,
+			theme: this.settings.theme,
+			isDarkMode: this.isDarkMode(),
+			explicitWidth: fenceWidth ?? undefined,
+			onWidthCommit: (width) => persistBlockWidth(this.app, ctx, el, source, width),
+			onRenderError: (message) => this.handleError(el, message, source),
+			onPanZoomChange: (state) => toolbarControls?.setZoomPercent(state.scale * 100),
+		});
+		ctx.addChild(renderChild);
+		// PDF 导出等管线可能不触发 onload，这里保证幂等启动
+		renderChild.ensureStarted();
+
+		toolbarControls = createToolbar(container, {
+			isCentered: () => centered,
+			onToggleCenter: () => {
+				centered = !centered;
+				container.toggleClass("infographic-centered", centered);
+				const align: "center" | "left" | null = centered ? "center" : null;
+				persistFenceUpdate(this.app, ctx, el, source, (f) => setFenceAlign(f, align));
+			},
+			onCopySource: () => {
+				void navigator.clipboard.writeText(source.trim()).then(
+					() => new Notice("已复制源码到剪贴板"),
+					() => new Notice("复制失败"),
+				);
+			},
+			onCopyImage: () => {
+				const instance = renderChild.getInfographic();
+				if (!instance) return;
+				void (async () => {
+					try {
+						const dataUrl = await instance.toDataURL({ type: "png" });
+						const outcome = await copyImageToClipboard(dataUrl, source);
+						new Notice(outcome === "image" ? "图表已复制到剪贴板" : "当前环境不支持复制图片，已复制源码；可用导出按钮保存 PNG");
+					} catch (error) {
+						console.error("[Infographic Plugin] Copy image error:", error);
+						new Notice("复制失败: " + (error instanceof Error ? error.message : String(error)));
+					}
+				})();
+			},
+			onExport: () => {
+				const instance = renderChild.getInfographic();
+				if (instance) new ExportModal(this.app, instance).open();
+			},
+			onZoomIn: () => renderChild.zoomIn(),
+			onZoomOut: () => renderChild.zoomOut(),
+			onFit: () => renderChild.fitWidth(),
+			onFullscreen: () => this.openFullscreen(result.content, result.isJson, renderChild.getInfographic()),
+		});
+	}
+
+	// Task 9 将替换为真正的 FullscreenModal；本任务先保证按钮可用（临时提示）
+	private openFullscreen(content: string, isJson: boolean, instance: Infographic | null): void {
+		void content;
+		void isJson;
+		void instance;
+		new Notice("全屏查看器将在下一任务启用");
+	}
+
+	/** 统一错误呈现（spec §3 错误占位卡）：解析失败与渲染失败共用，按 errorBehavior 走三模式 */
+	private handleError(el: HTMLElement, error: string, source: string): void {
+		const behavior: ErrorBehavior = this.settings.errorBehavior;
+		el.empty();
+		if (behavior === "hide") {
+			el.addClass("infographic-hidden");
+			return;
+		}
+		createErrorPlaceholder(el, {
+			message: error,
+			onDetails: behavior === "show-error"
+				? () => new SourceCodeModal(this.app, source).open()
+				: undefined,
+		});
+		if (behavior === "show-code") {
+			const pre = el.createEl("pre", { cls: "infographic-error-source" });
+			pre.createEl("code").setText(source);
+		}
 	}
 
 	async loadSettings() {
@@ -30,144 +175,18 @@ export default class InfographicPlugin extends Plugin {
 			// 旧版 defaultTheme 迁移：显式 light/dark 保留，其余（含 'default'）归 auto
 			theme = data.defaultTheme;
 		}
+		// R5：errorBehavior 合法性校验——手改 data.json 出现非法值时回退默认，防声明式 dropdown 出现空值
+		let errorBehavior: ErrorBehavior = DEFAULT_SETTINGS.errorBehavior;
+		if (data?.errorBehavior === "show-code" || data?.errorBehavior === "show-error" || data?.errorBehavior === "hide") {
+			errorBehavior = data.errorBehavior;
+		}
 		this.settings = {
 			theme,
-			errorBehavior: data?.errorBehavior ?? DEFAULT_SETTINGS.errorBehavior,
+			errorBehavior,
 		};
 	}
 
 	async saveSettings() {
 		await this.saveData(this.settings);
-	}
-
-	private renderInfographic(content: string, containerEl: HTMLElement) {
-		// 清空容器
-		containerEl.empty();
-
-		// 创建包装容器元素
-		const wrapper = containerEl.createDiv('infographic-wrapper');
-
-		try {
-			// 创建 Infographic 实例
-			const instance = new Infographic({
-				container: wrapper,
-				...this.settingsToOptions(),
-			});
-
-			// 渲染内容
-			instance.render(content);
-
-			// 在包装容器上添加右键菜单
-			this.registerDomEvent(wrapper, 'contextmenu', (event: MouseEvent) => {
-				event.preventDefault();
-
-				const menu = new Menu();
-
-				// 复制图表到剪贴板
-				menu.addItem((item) =>
-					item
-						.setTitle('复制')
-						.setIcon('copy')
-						.onClick(async () => {
-							try {
-								const dataUrl = await instance.toDataURL();
-								const blob = this.dataUrlToBlob(dataUrl);
-
-								await navigator.clipboard.write([
-									new ClipboardItem({
-										'image/png': blob
-									})
-								]);
-
-								new Notice('图表已复制到剪贴板');
-							} catch (error) {
-								console.error('Copy error:', error);
-								new Notice('复制失败: ' + (error instanceof Error ? error.message : String(error)));
-							}
-						})
-				);
-
-				// 导出为 PNG（默认）
-				menu.addItem((item) =>
-					item
-						.setTitle('导出为 PNG')
-						.setIcon('image-file')
-						.onClick(async () => {
-							try {
-								const dataUrl = await instance.toDataURL();
-
-								// 创建下载链接
-								const link = document.createElement('a');
-								link.href = dataUrl;
-								link.download = `infographic-${Date.now()}.png`;
-								link.click();
-
-								new Notice('图表已导出为 PNG');
-							} catch (error) {
-								console.error('Export error:', error);
-								new Notice('导出失败: ' + (error instanceof Error ? error.message : String(error)));
-							}
-						})
-				);
-
-				// 导出为 SVG
-				menu.addItem((item) =>
-					item
-						.setTitle('导出为 SVG')
-						.setIcon('image-file')
-						.onClick(async () => {
-							try {
-								const dataUrl = await instance.toDataURL({
-									type: 'svg',
-									embedResources: true,
-									removeIds: false
-								});
-
-								// 创建下载链接
-								const link = document.createElement('a');
-								link.href = dataUrl;
-								link.download = `infographic-${Date.now()}.svg`;
-								link.click();
-
-								new Notice('图表已导出为 SVG');
-							} catch (error) {
-								console.error('Export error:', error);
-								new Notice('导出失败: ' + (error instanceof Error ? error.message : String(error)));
-							}
-						})
-				);
-
-				menu.showAtMouseEvent(event);
-			});
-		} catch (error) {
-			// 错误处理
-			console.error('Infographic render error:', error);
-			wrapper.createDiv({
-				cls: 'infographic-error',
-				text: `渲染失败: ${error instanceof Error ? error.message : String(error)}`
-			});
-		}
-	}
-
-	// 辅助函数：将 data URL 转换为 Blob
-	private dataUrlToBlob(dataUrl: string): Blob {
-		const arr = dataUrl.split(',');
-		if (arr.length < 2 || !arr[0] || !arr[1]) {
-			throw new Error('Invalid data URL');
-		}
-
-		const mimeMatch = arr[0].match(/:(.*?);/);
-		const mime = mimeMatch?.[1] || 'image/png';
-		const bstr = atob(arr[1]);
-		let n = bstr.length;
-		const u8arr = new Uint8Array(n);
-		while (n--) {
-			u8arr[n] = bstr.charCodeAt(n);
-		}
-		return new Blob([u8arr], { type: mime });
-	}
-
-	private settingsToOptions(): Partial<InfographicOptions> {
-		return {};
 	}
 }
