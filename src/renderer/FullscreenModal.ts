@@ -24,6 +24,7 @@ export class FullscreenModal extends Modal {
 
 	constructor(app: App, payload: FullscreenPayload) {
 		super(app);
+		this.containerEl.addClass("infographic-fullscreen-container");
 		this.payload = payload;
 	}
 
@@ -81,6 +82,9 @@ export class FullscreenModal extends Modal {
 			wheelMode: "always",
 			onChange: (state) => this.zoomLabel?.setText(`${Math.round(state.scale * 100)}%`),
 		});
+
+		const modalBg = this.containerEl.querySelector(".modal-bg");
+		modalBg?.addEventListener("click", () => this.close());
 	}
 
 	private fitToScreen(stage: HTMLElement, viewport: HTMLElement): void {

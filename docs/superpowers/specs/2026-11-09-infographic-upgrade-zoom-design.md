@@ -62,6 +62,7 @@
 - loading 态；控件常显；滚轮恒缩放；拖拽平移；双击重置；Esc / 关闭按钮退出。
 - 导出/复制按钮持有**原笔记内实例**引用（`renderChild.getInfographic()` 模式），导出恒为全图。
 - `onClose()` 中 destroy 实例 + `controller.destroy()` + `contentEl.empty()`；同屏仅允许一个全屏 Modal。
+- 全屏为 Image Toolkit 风格整窗遮罩：`.modal-bg` 淡黑 rgba(0,0,0,0.75)、modal 铺满 100vw/100vh 透明无框、控件悬浮右上、点击遮罩关闭。
 
 ### 命令
 
