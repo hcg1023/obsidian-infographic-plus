@@ -1,4 +1,4 @@
-// Portions Copyright 2025 shuuul (https://github.com/shuuul/obsidian-infographic), Apache-2.0. Modified for antv-infographic.
+// Portions Copyright 2025 shuuul (https://github.com/shuuul/obsidian-infographic), Apache-2.0. Modified for antv-infographic-plus.
 // Ported verbatim from https://github.com/shuuul/obsidian-infographic (src/types/obsidian-window.ts)
 /**
  * Obsidian exposes its DOM helper functions (createEl, createDiv, ...) as

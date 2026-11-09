@@ -1,4 +1,4 @@
-// Portions Copyright 2025 shuuul (https://github.com/shuuul/obsidian-infographic), Apache-2.0. Modified for antv-infographic.
+// Portions Copyright 2025 shuuul (https://github.com/shuuul/obsidian-infographic), Apache-2.0. Modified for antv-infographic-plus.
 // Ported from https://github.com/shuuul/obsidian-infographic (src/renderer/InfographicView.ts)
 import { MarkdownRenderChild } from "obsidian";
 import { Infographic, type InfographicOptions } from "@antv/infographic";
