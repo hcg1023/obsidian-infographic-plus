@@ -1,14 +1,18 @@
-import { App, PluginSettingTab, Setting } from "obsidian";
-import { getThemes } from '@antv/infographic';
-import InfographicPlugin from "./main";
+// Portions Copyright 2025 shuuul (https://github.com/shuuul/obsidian-infographic), Apache-2.0. Modified for antv-infographic.
+import { App, PluginSettingTab, SettingDefinitionItem } from "obsidian";
+import type InfographicPlugin from "./main";
+
+export type ThemeSetting = "auto" | "light" | "dark";
+export type ErrorBehavior = "show-code" | "show-error" | "hide";
 
 export interface InfographicSettings {
-	// 默认主题
-	defaultTheme?: string;
+	theme: ThemeSetting;
+	errorBehavior: ErrorBehavior;
 }
 
 export const DEFAULT_SETTINGS: InfographicSettings = {
-	defaultTheme: 'default'
+	theme: "auto",
+	errorBehavior: "show-code",
 };
 
 export class InfographicSettingTab extends PluginSettingTab {
@@ -19,22 +23,32 @@ export class InfographicSettingTab extends PluginSettingTab {
 		this.plugin = plugin;
 	}
 
-	display(): void {
-		const { containerEl } = this;
-		containerEl.empty();
-
-		// 获取可用主题列表
-		const themes = ['default', ...getThemes()];
-
-		new Setting(containerEl)
-			.setName('Default theme')
-			.setDesc('Select the default theme for rendering infographics')
-			.addDropdown(dropdown => dropdown
-				.addOptions(Object.fromEntries(themes.map(theme => [theme, theme])))
-				.setValue(this.plugin.settings.defaultTheme || 'default')
-				.onChange(async (value) => {
-					this.plugin.settings.defaultTheme = value;
-					await this.plugin.saveSettings();
-				}));
+	getSettingDefinitions(): SettingDefinitionItem[] {
+		return [
+			{
+				name: "Theme",
+				desc: "Color theme for infographics",
+				control: {
+					key: "theme",
+					type: "dropdown",
+					defaultValue: DEFAULT_SETTINGS.theme,
+					options: { auto: "Auto (follow Obsidian)", light: "Light", dark: "Dark" },
+				},
+			},
+			{
+				name: "Error behavior",
+				desc: "What to display when an infographic fails to render",
+				control: {
+					key: "errorBehavior",
+					type: "dropdown",
+					defaultValue: DEFAULT_SETTINGS.errorBehavior,
+					options: {
+						"show-code": "Show source code",
+						"show-error": "Show error message only",
+						hide: "Hide block entirely",
+					},
+				},
+			},
+		];
 	}
 }

@@ -1,6 +1,6 @@
 import { Menu, Notice, Plugin } from 'obsidian';
 import { Infographic, InfographicOptions } from '@antv/infographic';
-import { DEFAULT_SETTINGS, InfographicSettings, InfographicSettingTab } from './settings';
+import { DEFAULT_SETTINGS, InfographicSettings, InfographicSettingTab, ThemeSetting } from './settings';
 
 export default class InfographicPlugin extends Plugin {
 	settings: InfographicSettings;
@@ -22,7 +22,18 @@ export default class InfographicPlugin extends Plugin {
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<InfographicSettings>);
+		const data = await this.loadData() as (Partial<InfographicSettings> & { defaultTheme?: string }) | null;
+		let theme: ThemeSetting = DEFAULT_SETTINGS.theme;
+		if (data?.theme === "auto" || data?.theme === "light" || data?.theme === "dark") {
+			theme = data.theme;
+		} else if (data?.defaultTheme === "light" || data?.defaultTheme === "dark") {
+			// 旧版 defaultTheme 迁移：显式 light/dark 保留，其余（含 'default'）归 auto
+			theme = data.defaultTheme;
+		}
+		this.settings = {
+			theme,
+			errorBehavior: data?.errorBehavior ?? DEFAULT_SETTINGS.errorBehavior,
+		};
 	}
 
 	async saveSettings() {
@@ -157,13 +168,6 @@ export default class InfographicPlugin extends Plugin {
 	}
 
 	private settingsToOptions(): Partial<InfographicOptions> {
-		const options: Partial<InfographicOptions> = {};
-
-		// 如果设置了默认主题，则应用
-		if (this.settings.defaultTheme) {
-			options.theme = this.settings.defaultTheme;
-		}
-
-		return options;
+		return {};
 	}
 }
