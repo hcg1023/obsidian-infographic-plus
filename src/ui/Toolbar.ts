@@ -41,6 +41,7 @@ export function createToolbar(parent: HTMLElement, handlers: ToolbarHandlers): T
 	toolbarButton(toolbar, "copy", "Copy source to clipboard", () => handlers.onCopySource());
 	toolbarButton(toolbar, "image", "Copy image to clipboard", () => handlers.onCopyImage());
 	toolbarButton(toolbar, "download", "Export as PNG or SVG", () => handlers.onExport());
+		toolbar.createDiv({ cls: "infographic-toolbar-separator" });
 
 	toolbarButton(toolbar, "zoom-out", "Zoom out", () => handlers.onZoomOut());
 	const zoomLabel = toolbar.createSpan({ cls: "infographic-zoom-label", text: "100%" });

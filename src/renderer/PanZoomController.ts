@@ -101,6 +101,7 @@ export class PanZoomController {
 		options.viewportEl.addEventListener("wheel", this.onWheel, { passive: false });
 		options.viewportEl.addEventListener("pointerdown", this.onPointerDown);
 		options.viewportEl.addEventListener("dblclick", this.onDblClick);
+		this.options.viewportEl.style.touchAction = (this.isZoomed() || this.options.wheelMode === "always") ? "none" : "pan-y";
 	}
 
 	getState(): PanZoomState {
