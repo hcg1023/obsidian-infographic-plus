@@ -3,6 +3,7 @@ import type { Infographic } from "@antv/infographic";
 import { PanZoomController } from "./PanZoomController";
 import { renderInfographicInto } from "./InfographicView";
 import { ExportModal } from "../ui/ExportModal";
+import { i18n } from "../lang";
 
 export interface FullscreenPayload {
 	content: string;
@@ -37,7 +38,7 @@ export class FullscreenModal extends Modal {
 
 		const viewport = contentEl.createDiv({ cls: "infographic-fullscreen-viewport" });
 		const stage = viewport.createDiv({ cls: "infographic-fullscreen-stage" });
-		const loading = viewport.createDiv({ cls: "infographic-loading", text: "Loading infographic..." });
+		const loading = viewport.createDiv({ cls: "infographic-loading", text: i18n.loadingText });
 
 		let renderFailed = false;
 		try {
@@ -61,7 +62,7 @@ export class FullscreenModal extends Modal {
 						// render() 返回后异步 emit 时 loading 可能已被移除——重新挂回保证错误可见
 						if (!loading.isConnected) viewport.appendChild(loading);
 						loading.addClass("infographic-error-message");
-						loading.setText(`Failed to render infographic: ${message}`);
+						loading.setText(i18n.renderFailedPrefix + message);
 					}),
 			);
 			if (!renderFailed) {
@@ -72,7 +73,7 @@ export class FullscreenModal extends Modal {
 			const message = error instanceof Error ? error.message : String(error);
 			console.error("[Infographic Plugin] Fullscreen render error:", message);
 			loading.addClass("infographic-error-message");
-			loading.setText(`Failed to render infographic: ${message}`);
+			loading.setText(i18n.renderFailedPrefix + message);
 			return;
 		}
 
@@ -111,12 +112,12 @@ export class FullscreenModal extends Modal {
 			b.addEventListener("click", onClick);
 			return b;
 		};
-		btn("zoom-out", "Zoom out", () => this.controller?.zoomBy(1 / 1.25));
+		btn("zoom-out", i18n.ariaZoomOut, () => this.controller?.zoomBy(1 / 1.25));
 		this.zoomLabel = toolbar.createSpan({ cls: "infographic-zoom-label", text: "100%" });
-		btn("zoom-in", "Zoom in", () => this.controller?.zoomBy(1.25));
-		btn("move-horizontal", "Fit to screen", () => this.controller?.reset());
+		btn("zoom-in", i18n.ariaZoomIn, () => this.controller?.zoomBy(1.25));
+		btn("move-horizontal", i18n.ariaFitScreen, () => this.controller?.reset());
 		toolbar.createDiv({ cls: "infographic-toolbar-separator" });
-		const exportBtn = btn("download", "Export as PNG or SVG", () => {
+		const exportBtn = btn("download", i18n.ariaExport, () => {
 			if (this.payload.sourceInstance) {
 				new ExportModal(this.app, this.payload.sourceInstance).open();
 			}
@@ -125,7 +126,7 @@ export class FullscreenModal extends Modal {
 			exportBtn.disabled = true;
 			exportBtn.setAttribute("aria-disabled", "true");
 		}
-		btn("x", "Close", () => this.close());
+		btn("x", i18n.ariaClose, () => this.close());
 	}
 
 	onClose(): void {

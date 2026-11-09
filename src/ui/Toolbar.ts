@@ -1,5 +1,6 @@
 // Portions Copyright 2025 shuuul (https://github.com/shuuul/obsidian-infographic), Apache-2.0. Modified for antv-infographic-plus.
 import { setIcon } from "obsidian";
+import { i18n } from "../lang";
 
 export interface ToolbarHandlers {
 	isCentered(): boolean;
@@ -31,7 +32,7 @@ export function createToolbar(parent: HTMLElement, handlers: ToolbarHandlers, op
 	toolbar.addEventListener("pointerdown", (event) => event.stopPropagation());
 	toolbar.addEventListener("mousedown", (event) => event.preventDefault());
 	toolbar.addEventListener("click", (event) => event.stopPropagation());
-	const centerBtn = toolbarButton(toolbar, "align-center", "Toggle center alignment", () => {
+	const centerBtn = toolbarButton(toolbar, "align-center", i18n.ariaCenter, () => {
 		handlers.onToggleCenter();
 		const centered = handlers.isCentered();
 		centerBtn.setAttribute("aria-pressed", String(centered));
@@ -40,18 +41,18 @@ export function createToolbar(parent: HTMLElement, handlers: ToolbarHandlers, op
 	centerBtn.setAttribute("aria-pressed", String(handlers.isCentered()));
 	centerBtn.toggleClass("infographic-center-btn-active", handlers.isCentered());
 
-	toolbarButton(toolbar, "copy", "Copy source to clipboard", () => handlers.onCopySource());
-	toolbarButton(toolbar, "image", "Copy image to clipboard", () => handlers.onCopyImage());
-	toolbarButton(toolbar, "download", "Export as PNG or SVG", () => handlers.onExport());
+	toolbarButton(toolbar, "copy", i18n.ariaCopySource, () => handlers.onCopySource());
+	toolbarButton(toolbar, "image", i18n.ariaCopyImage, () => handlers.onCopyImage());
+	toolbarButton(toolbar, "download", i18n.ariaExport, () => handlers.onExport());
 
 	let zoomLabel: HTMLElement | null = null;
 	if (options?.showZoomControls !== false) {
-		toolbarButton(toolbar, "zoom-out", "Zoom out", () => handlers.onZoomOut());
+		toolbarButton(toolbar, "zoom-out", i18n.ariaZoomOut, () => handlers.onZoomOut());
 		zoomLabel = toolbar.createSpan({ cls: "infographic-zoom-label", text: "100%" });
-		toolbarButton(toolbar, "zoom-in", "Zoom in", () => handlers.onZoomIn());
+		toolbarButton(toolbar, "zoom-in", i18n.ariaZoomIn, () => handlers.onZoomIn());
 	}
-	toolbarButton(toolbar, "move-horizontal", "Fit to width", () => handlers.onFit());
-	toolbarButton(toolbar, "maximize-2", "Open fullscreen viewer", () => handlers.onFullscreen());
+	toolbarButton(toolbar, "move-horizontal", i18n.ariaFit, () => handlers.onFit());
+	toolbarButton(toolbar, "maximize-2", i18n.ariaFullscreen, () => handlers.onFullscreen());
 	return {
 		setZoomPercent: (percent: number) => zoomLabel?.setText(`${Math.round(percent)}%`),
 	};

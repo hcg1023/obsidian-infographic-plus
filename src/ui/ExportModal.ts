@@ -1,6 +1,7 @@
 // Portions Copyright 2025 shuuul (https://github.com/shuuul/obsidian-infographic), Apache-2.0. Modified for antv-infographic-plus.
 import {App, Modal, Notice} from "obsidian";
 import type {Infographic} from "@antv/infographic";
+import { i18n } from "../lang";
 
 declare const activeWindow: Window;
 
@@ -18,17 +19,17 @@ export class ExportModal extends Modal {
 		const {contentEl} = this;
 		contentEl.addClass("infographic-export-modal");
 
-		contentEl.createEl("h2", {text: "Export infographic"});
+		contentEl.createEl("h2", {text: i18n.exportTitle});
 
 		const buttonContainer = contentEl.createDiv({cls: "infographic-export-buttons"});
 
-		const pngButton = buttonContainer.createEl("button", {text: "Export as PNG"});
+		const pngButton = buttonContainer.createEl("button", {text: i18n.exportPng});
 		pngButton.addEventListener("click", () => void this.exportAsPng());
 
-		const svgButton = buttonContainer.createEl("button", {text: "Export as SVG"});
+		const svgButton = buttonContainer.createEl("button", {text: i18n.exportSvg});
 		svgButton.addEventListener("click", () => void this.exportAsSvg());
 
-		const cancelButton = buttonContainer.createEl("button", {text: "Cancel"});
+		const cancelButton = buttonContainer.createEl("button", {text: i18n.cancel});
 		cancelButton.addEventListener("click", () => this.close());
 	}
 
@@ -36,12 +37,12 @@ export class ExportModal extends Modal {
 		try {
 			const dataUrl = await this.infographic.toDataURL({type: "png"});
 			this.downloadDataUrl(dataUrl, `${this.filename}.png`);
-			new Notice("Exported as PNG");
+			new Notice(i18n.exportedPng);
 			this.close();
 		} catch (e) {
 			const message = e instanceof Error ? e.message : String(e);
 			console.error("[Infographic Plugin] Export error:", message);
-			new Notice(`Export failed: ${message}`);
+			new Notice(i18n.exportFailedPrefix + message);
 		}
 	}
 
@@ -49,12 +50,12 @@ export class ExportModal extends Modal {
 		try {
 			const dataUrl = await this.infographic.toDataURL({type: "svg"});
 			this.downloadDataUrl(dataUrl, `${this.filename}.svg`);
-			new Notice("Exported as SVG");
+			new Notice(i18n.exportedSvg);
 			this.close();
 		} catch (e) {
 			const message = e instanceof Error ? e.message : String(e);
 			console.error("[Infographic Plugin] Export error:", message);
-			new Notice(`Export failed: ${message}`);
+			new Notice(i18n.exportFailedPrefix + message);
 		}
 	}
 

@@ -7,6 +7,7 @@ import { clearFenceSize, getFenceAlign, parseHeightParam, parseWidthParam, persi
 import { FullscreenModal, getCachedBlockHeight, InfographicRenderChild } from "./renderer";
 import { copyImageToClipboard, createErrorPlaceholder, createToolbar, ExportModal, SourceCodeModal } from "./ui";
 import type { ToolbarControls } from "./ui";
+import { i18n } from "./lang";
 
 const INFOGRAPHIC_TEMPLATE = `{
   "template": "list-row-simple-horizontal-arrow",
@@ -122,8 +123,8 @@ export default class InfographicPlugin extends Plugin {
 				},
 				onCopySource: () => {
 					void navigator.clipboard.writeText(source.trim()).then(
-						() => new Notice("已复制源码到剪贴板"),
-						() => new Notice("复制失败"),
+						() => new Notice(i18n.copySourceSuccess),
+						() => new Notice(i18n.copyFailed),
 					);
 				},
 				onCopyImage: () => {
@@ -133,10 +134,10 @@ export default class InfographicPlugin extends Plugin {
 						try {
 							const dataUrl = await instance.toDataURL({ type: "png" });
 							const outcome = await copyImageToClipboard(dataUrl, source);
-							new Notice(outcome === "image" ? "图表已复制到剪贴板" : "当前环境不支持复制图片，已复制源码；可用导出按钮保存 PNG");
+							new Notice(outcome === "image" ? i18n.copyImageSuccess : i18n.copyImageFallback);
 						} catch (error) {
 							console.error("[Infographic Plugin] Copy image error:", error);
-							new Notice("复制失败: " + (error instanceof Error ? error.message : String(error)));
+							new Notice(i18n.copyFailedWithReason + (error instanceof Error ? error.message : String(error)));
 						}
 					})();
 				},

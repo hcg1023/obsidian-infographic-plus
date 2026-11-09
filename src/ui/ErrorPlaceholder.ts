@@ -1,4 +1,5 @@
 import { setIcon } from "obsidian";
+import { i18n } from "../lang";
 
 export interface ErrorPlaceholderOptions {
 	message: string;
@@ -15,9 +16,9 @@ export function createErrorPlaceholder(parent: HTMLElement, options: ErrorPlaceh
 	const header = parent.createDiv({ cls: "infographic-error-header" });
 	const icon = header.createSpan({ cls: "infographic-error-icon" });
 	setIcon(icon, "circle-alert");
-	header.createSpan({ text: `Error: ${options.message}` });
+	header.createSpan({ text: i18n.errorPrefix + options.message });
 	if (options.onDetails) {
-		const detailsBtn = parent.createEl("button", { text: "View details", cls: "infographic-error-details-btn" });
+		const detailsBtn = parent.createEl("button", { text: i18n.viewDetails, cls: "infographic-error-details-btn" });
 		detailsBtn.addEventListener("click", options.onDetails);
 	}
 }

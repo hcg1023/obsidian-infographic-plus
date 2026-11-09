@@ -6,6 +6,7 @@ import type { ThemeSetting } from "../settings";
 import { createErrorPlaceholder } from "../ui/ErrorPlaceholder";
 import { PanZoomController } from "./PanZoomController";
 import type { PanZoomState } from "./PanZoomController";
+import { i18n } from "../lang";
 export interface RenderOptions {
 	content: string;
 	isJson: boolean;
@@ -193,7 +194,7 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 		this.containerEl.addClass("infographic-viewport");
 		this.contentEl = this.containerEl.createDiv({ cls: "infographic-content" });
 		this.loadingEl = this.contentEl.createDiv({ cls: "infographic-loading" });
-		this.loadingEl.setText("Loading infographic...");
+		this.loadingEl.setText(i18n.loadingText);
 	}
 
 	private hideLoading(): void {
@@ -279,7 +280,7 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 		this.panZoom?.reset();
 		this.destroyInfographic();
 		this.containerEl.empty();
-		createErrorPlaceholder(this.containerEl, { message: `Failed to render infographic: ${message}` });
+		createErrorPlaceholder(this.containerEl, { message: i18n.renderFailedPrefix + message });
 	}
 
 	/**
@@ -295,7 +296,7 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 			const height = svg?.getBoundingClientRect().height ?? 0;
 			if (!svg || height < 1) {
 				this.hideLoading();
-				this.reportRenderError("渲染结果为空（请检查 template 模板名与数据是否有效）");
+				this.reportRenderError(i18n.emptyRender);
 			}
 		});
 	}

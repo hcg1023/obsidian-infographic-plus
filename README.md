@@ -122,6 +122,8 @@ The opening fence line accepts optional parameters:
 
 Both parameters are also editable interactively: drag the resize handles on the sides of a block to change its width, and use the toolbar center-align button. The change is persisted back into the fence line of your note.
 
+UI strings follow the Obsidian language (English / Simplified Chinese).
+
 ### Zoom & Pan
 
 The rendered infographic is interactive:

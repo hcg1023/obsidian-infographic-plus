@@ -1,6 +1,7 @@
 // Portions Copyright 2025 shuuul (https://github.com/shuuul/obsidian-infographic), Apache-2.0. Modified for antv-infographic-plus.
 import { App, PluginSettingTab, SettingDefinitionItem } from "obsidian";
 import type InfographicPlugin from "./main";
+import { i18n } from "./lang";
 
 export type ThemeSetting = "auto" | "light" | "dark";
 export type ErrorBehavior = "show-code" | "show-error" | "hide";
@@ -34,32 +35,32 @@ export class InfographicSettingTab extends PluginSettingTab {
 	getSettingDefinitions(): SettingDefinitionItem[] {
 		return [
 			{
-				name: "Theme",
-				desc: "Color theme for infographics",
+				name: i18n.themeName,
+				desc: i18n.themeDesc,
 				control: {
 					key: "theme",
 					type: "dropdown",
 					defaultValue: DEFAULT_SETTINGS.theme,
-					options: { auto: "Auto (follow Obsidian)", light: "Light", dark: "Dark" },
+					options: { auto: i18n.themeAuto, light: i18n.themeLight, dark: i18n.themeDark },
 				},
 			},
 			{
-				name: "Error behavior",
-				desc: "What to display when an infographic fails to render",
+				name: i18n.errorBehaviorName,
+				desc: i18n.errorBehaviorDesc,
 				control: {
 					key: "errorBehavior",
 					type: "dropdown",
 					defaultValue: DEFAULT_SETTINGS.errorBehavior,
 					options: {
-						"show-code": "Show source code",
-						"show-error": "Show error message only",
-						hide: "Hide block entirely",
+						"show-code": i18n.errorShowCode,
+						"show-error": i18n.errorShowError,
+						hide: i18n.errorHide,
 					},
 				},
 			},
 		{
-			name: "Drag to resize",
-			desc: "Show drag handles on block edges to adjust width and height",
+			name: i18n.resizeName,
+			desc: i18n.resizeDesc,
 			control: {
 				key: "enableResizeHandles",
 				type: "toggle",
@@ -67,8 +68,8 @@ export class InfographicSettingTab extends PluginSettingTab {
 			},
 		},
 		{
-			name: "In-note zoom",
-			desc: "Ctrl/Cmd+wheel zoom, drag to pan, and zoom controls on the toolbar",
+			name: i18n.zoomName,
+			desc: i18n.zoomDesc,
 			control: {
 				key: "enableZoom",
 				type: "toggle",
@@ -76,8 +77,8 @@ export class InfographicSettingTab extends PluginSettingTab {
 			},
 		},
 		{
-			name: "Hover toolbar",
-			desc: "Show the toolbar with copy, export and zoom actions when hovering a block",
+			name: i18n.toolbarName,
+			desc: i18n.toolbarDesc,
 			control: {
 				key: "showToolbar",
 				type: "toggle",
@@ -85,8 +86,8 @@ export class InfographicSettingTab extends PluginSettingTab {
 			},
 		},
 		{
-			name: "Center blocks by default",
-			desc: "Center blocks horizontally unless overridden by the align= fence parameter",
+			name: i18n.centerName,
+			desc: i18n.centerDesc,
 			control: {
 				key: "centerByDefault",
 				type: "toggle",
