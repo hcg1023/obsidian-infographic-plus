@@ -1,5 +1,5 @@
 // Portions Copyright 2025 shuuul (https://github.com/shuuul/obsidian-infographic), Apache-2.0. Modified for antv-infographic-plus.
-import { Editor, MarkdownPostProcessorContext, Notice, Plugin } from "obsidian";
+import { Editor, MarkdownPostProcessorContext, MarkdownView, Notice, Plugin } from "obsidian";
 import type { Infographic } from "@antv/infographic";
 import { DEFAULT_SETTINGS, ErrorBehavior, InfographicSettingTab, InfographicSettings, ThemeSetting } from "./settings";
 import { parseInfographicSpec, showParseError } from "./parser";
@@ -22,6 +22,7 @@ const INFOGRAPHIC_TEMPLATE = `{
 
 export default class InfographicPlugin extends Plugin {
 	settings: InfographicSettings;
+	private rerenderTimer: number | null = null;
 
 	async onload(): Promise<void> {
 		await this.loadSettings();
@@ -30,6 +31,13 @@ export default class InfographicPlugin extends Plugin {
 			void this.processInfographicBlock(source, el, ctx);
 		});
 		this.registerCommands();
+	}
+
+	onunload(): void {
+		if (this.rerenderTimer !== null) {
+			window.clearTimeout(this.rerenderTimer);
+			this.rerenderTimer = null;
+		}
 	}
 
 	private registerCommands(): void {
@@ -195,6 +203,18 @@ export default class InfographicPlugin extends Plugin {
 		}
 	}
 
+	/** 接管声明式设置读取：默认实现直接操作 loadData，绕开内存 settings；改读 this.settings 保证同步 */
+	getControlValue(key: string): unknown {
+		return (this.settings as unknown as Record<string, unknown>)[key];
+	}
+
+	/** 接管声明式设置写入：更新内存 settings 并落盘，随后防抖重渲染所有打开的笔记 */
+	async setControlValue(key: string, value: unknown): Promise<void> {
+		(this.settings as unknown as Record<string, unknown>)[key] = value;
+		await this.saveSettings();
+		this.scheduleSettingsRerender();
+	}
+
 	async loadSettings() {
 		const data = await this.loadData() as (Partial<InfographicSettings> & { defaultTheme?: string }) | null;
 		let theme: ThemeSetting = DEFAULT_SETTINGS.theme;
@@ -221,5 +241,22 @@ export default class InfographicPlugin extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
+	}
+
+	/** 设置变更后防抖重渲染所有打开的笔记，已渲染块立即应用新设置（高度桥接会尽量稳住滚动） */
+	private scheduleSettingsRerender(): void {
+		if (this.rerenderTimer !== null) {
+			window.clearTimeout(this.rerenderTimer);
+		}
+		this.rerenderTimer = window.setTimeout(() => {
+			this.rerenderTimer = null;
+			this.app.workspace.iterateAllLeaves((leaf) => {
+				const view = leaf.view;
+				if (view instanceof MarkdownView) {
+					const state = view.getState();
+					void view.setState(state, { history: false });
+				}
+			});
+		}, 200);
 	}
 }
