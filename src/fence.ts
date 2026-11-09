@@ -159,6 +159,30 @@ export function resolveFenceText(app: App, ctx: MarkdownPostProcessorContext, el
 }
 
 /**
+ * fence 回写会让 Obsidian 重建整个代码块（旧渲染子组件卸载、新建、先 loading 后成图），
+ * 期间 live preview 的滚动锚点会丢失、视口被重置到顶部。
+ * 在编辑前保存滚动，块重建完成后恢复。
+ */
+function replaceFencePreservingScroll(
+	editor: Editor,
+	el: HTMLElement,
+	line: number,
+	from: { line: number; ch: number },
+	to: { line: number; ch: number },
+	updatedFence: string,
+): void {
+	const scroll = editor.getScrollInfo();
+	editor.replaceRange(updatedFence, from, to);
+	const win = el.ownerDocument.defaultView;
+	if (!win) return;
+	win.requestAnimationFrame(() => {
+		win.requestAnimationFrame(() => {
+			editor.scrollTo(scroll.left, scroll.top);
+		});
+	});
+}
+
+/**
  * Best-effort persistence of a fence edit (width / align): rewrite the
  * block's fence line in the live editor. Skipped in reading mode, in
  * hover previews of other files, and when the section cannot be located
@@ -185,7 +209,7 @@ export function persistFenceUpdate(app: App, ctx: MarkdownPostProcessorContext, 
 				? info.lineStart
 				: findUniqueSectionStart(editor, info.text.split("\n"));
 			if (line !== null) {
-				editor.replaceRange(updatedFence, {line, ch: 0}, {line, ch: fence.length});
+				replaceFencePreservingScroll(editor, el, line, {line, ch: 0}, {line, ch: fence.length}, updatedFence);
 				return;
 			}
 		}
@@ -198,7 +222,7 @@ export function persistFenceUpdate(app: App, ctx: MarkdownPostProcessorContext, 
 	if (!located) return;
 	const updatedFence = update(located.fence);
 	if (updatedFence === located.fence) return;
-	editor.replaceRange(updatedFence, {line: located.line, ch: 0}, {line: located.line, ch: located.fence.length});
+	replaceFencePreservingScroll(editor, el, located.line, {line: located.line, ch: 0}, {line: located.line, ch: located.fence.length}, updatedFence);
 }
 
 export function persistBlockWidth(
