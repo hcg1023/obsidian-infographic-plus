@@ -58,6 +58,15 @@
 - 工具栏位于右下角（`bottom:4px; right:4px`，上游风格独立 chip，hover 显隐）；工具栏容器阻止 pointerdown/click 冒泡到预览层，避免点击按钮导致页面滚回顶部。
 - 块边缘四向拖拽手柄：左右拖拽调宽（拖动实时预览，松手一次性重渲染并回写 fence `width=N`）；上下拖拽同理调高，松手回写 fence `height=N`（与 width 同模式）。回写通过 `replaceFencePreservingScroll` 保持滚动位置（块重建不致视口重置）。回写引发的块重建采用高度桥接（按块内容缓存上次高度，新渲染先撑 min-height 再撤除），配合滚动保存/恢复，重建对用户不可见。Obsidian 无编辑代码块而不重建的 API（Ink 插件作者 2024-12 论坛确认）。
 
+### 可配置项（设置面板声明式 toggle）
+
+笔记内交互均可整体关闭，经设置面板声明式 toggle 控制（存 data.json，脏数据回退默认）：
+
+- `enableResizeHandles`（默认开）：关闭后不创建四向拖拽手柄，块尺寸仅由 fence `width=N`/`height=N` 决定。
+- `enableZoom`（默认开）：关闭后不创建 PanZoomController——Ctrl/Cmd+滚轮、拖拽平移、双击复位均无反应，工具栏也不渲染 −/百分比/＋ 缩放组（适应宽度与全屏按钮保留，语义分别为恢复整栏宽与全屏查看，不依赖缩放）。
+- `showToolbar`（默认开）：关闭后 hover 不出现工具栏，块上无复制/导出入口（全屏入口亦随之消失）。
+- `centerByDefault`（默认关）：块初始水平居中；fence `align=center|left` 显式参数优先于该默认值，工具栏居中开关回写 `align` 后同样优先生效。
+
 ### 全屏查看器（FullscreenModal）
 
 - 打开时按适应屏幕**重渲染新实例**（不是 clone：全屏语义就是大画布重排；clone 无法 update/toDataURL，且全屏宽度 ≠ 笔记宽度导致布局不符）。

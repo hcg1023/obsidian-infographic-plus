@@ -8,11 +8,19 @@ export type ErrorBehavior = "show-code" | "show-error" | "hide";
 export interface InfographicSettings {
 	theme: ThemeSetting;
 	errorBehavior: ErrorBehavior;
+	enableResizeHandles: boolean;
+	enableZoom: boolean;
+	showToolbar: boolean;
+	centerByDefault: boolean;
 }
 
 export const DEFAULT_SETTINGS: InfographicSettings = {
 	theme: "auto",
 	errorBehavior: "show-code",
+	enableResizeHandles: true,
+	enableZoom: true,
+	showToolbar: true,
+	centerByDefault: false,
 };
 
 export class InfographicSettingTab extends PluginSettingTab {
@@ -49,6 +57,42 @@ export class InfographicSettingTab extends PluginSettingTab {
 					},
 				},
 			},
+		{
+			name: "Drag to resize",
+			desc: "Show drag handles on block edges to adjust width and height",
+			control: {
+				key: "enableResizeHandles",
+				type: "toggle",
+				defaultValue: DEFAULT_SETTINGS.enableResizeHandles,
+			},
+		},
+		{
+			name: "In-note zoom",
+			desc: "Ctrl/Cmd+wheel zoom, drag to pan, and zoom controls on the toolbar",
+			control: {
+				key: "enableZoom",
+				type: "toggle",
+				defaultValue: DEFAULT_SETTINGS.enableZoom,
+			},
+		},
+		{
+			name: "Hover toolbar",
+			desc: "Show the toolbar with copy, export and zoom actions when hovering a block",
+			control: {
+				key: "showToolbar",
+				type: "toggle",
+				defaultValue: DEFAULT_SETTINGS.showToolbar,
+			},
+		},
+		{
+			name: "Center blocks by default",
+			desc: "Center blocks horizontally unless overridden by the align= fence parameter",
+			control: {
+				key: "centerByDefault",
+				type: "toggle",
+				defaultValue: DEFAULT_SETTINGS.centerByDefault,
+			},
+		},
 		];
 	}
 }

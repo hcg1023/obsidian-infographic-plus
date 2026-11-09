@@ -186,7 +186,15 @@ obsidian-infographic-plus/
 
 本插件使用 [@antv/infographic](https://github.com/antvis/Infographic) 进行渲染。信息图表内容会直接传递给 Infographic 实例。
 
-有关信息图表语法和功能的更多信息，请参阅 [Infographic 文档](https://github.com/antvis/Infographic)。
+### 插件设置
+
+| 设置项 | 默认值 | 说明 |
+|---|---|---|
+| Drag to resize（拖拽调整大小） | 开 | 在块边缘显示拖拽手柄，可调整宽度与高度 |
+| In-note zoom（笔记内缩放） | 开 | Ctrl/Cmd+滚轮缩放、拖拽平移、工具栏缩放控件 |
+| Hover toolbar（悬停工具栏） | 开 | 悬停块时显示含复制、导出、缩放操作的工具栏。注意：关闭后复制/导出将无入口 |
+| Center blocks by default（默认居中） | 关 | 块默认水平居中，fence `align=` 参数可覆盖 |
+
 
 ## 特性
 

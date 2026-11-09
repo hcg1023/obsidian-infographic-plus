@@ -87,7 +87,7 @@ export default class InfographicPlugin extends Plugin {
 		}
 		const fenceHeight = fence ? parseHeightParam(fence) : null;
 		const fenceAlign = fence ? getFenceAlign(fence) : null;
-		let centered = fenceAlign === "center";
+		let centered = fenceAlign !== null ? fenceAlign === "center" : this.settings.centerByDefault;
 		container.toggleClass("infographic-centered", centered);
 
 		// 缩放百分比实时显示：toolbar 在 renderChild 之后创建，先声明后由闭包引用
@@ -102,6 +102,8 @@ export default class InfographicPlugin extends Plugin {
 			explicitHeight: fenceHeight ?? undefined,
 			onWidthCommit: (width) => persistBlockWidth(this.app, ctx, el, source, width),
 			onHeightCommit: (height) => persistBlockHeight(this.app, ctx, el, source, height),
+			enableResizeHandles: this.settings.enableResizeHandles,
+			enableZoom: this.settings.enableZoom,
 			onRenderError: (message) => this.handleError(el, message, source),
 			onPanZoomChange: (state) => toolbarControls?.setZoomPercent(state.scale * 100),
 		});
@@ -109,46 +111,48 @@ export default class InfographicPlugin extends Plugin {
 		// PDF 导出等管线可能不触发 onload，这里保证幂等启动
 		renderChild.ensureStarted();
 
-		toolbarControls = createToolbar(container, {
-			isCentered: () => centered,
-			onToggleCenter: () => {
-				centered = !centered;
-				container.toggleClass("infographic-centered", centered);
-				const align: "center" | "left" | null = centered ? "center" : null;
-				persistFenceUpdate(this.app, ctx, el, source, (f) => setFenceAlign(f, align));
-			},
-			onCopySource: () => {
-				void navigator.clipboard.writeText(source.trim()).then(
-					() => new Notice("已复制源码到剪贴板"),
-					() => new Notice("复制失败"),
-				);
-			},
-			onCopyImage: () => {
-				const instance = renderChild.getInfographic();
-				if (!instance) return;
-				void (async () => {
-					try {
-						const dataUrl = await instance.toDataURL({ type: "png" });
-						const outcome = await copyImageToClipboard(dataUrl, source);
-						new Notice(outcome === "image" ? "图表已复制到剪贴板" : "当前环境不支持复制图片，已复制源码；可用导出按钮保存 PNG");
-					} catch (error) {
-						console.error("[Infographic Plugin] Copy image error:", error);
-						new Notice("复制失败: " + (error instanceof Error ? error.message : String(error)));
-					}
-				})();
-			},
-			onExport: () => {
-				const instance = renderChild.getInfographic();
-				if (instance) new ExportModal(this.app, instance).open();
-			},
-			onZoomIn: () => renderChild.zoomIn(),
-			onZoomOut: () => renderChild.zoomOut(),
-			onFit: () => {
-				renderChild.fitWidth();
-				persistFenceUpdate(this.app, ctx, el, source, (fence) => clearFenceSize(fence));
-			},
-			onFullscreen: () => this.openFullscreen(result.content, result.isJson, renderChild.getInfographic()),
-		});
+		if (this.settings.showToolbar) {
+			toolbarControls = createToolbar(container, {
+				isCentered: () => centered,
+				onToggleCenter: () => {
+					centered = !centered;
+					container.toggleClass("infographic-centered", centered);
+					const align: "center" | "left" | null = centered ? "center" : null;
+					persistFenceUpdate(this.app, ctx, el, source, (f) => setFenceAlign(f, align));
+				},
+				onCopySource: () => {
+					void navigator.clipboard.writeText(source.trim()).then(
+						() => new Notice("已复制源码到剪贴板"),
+						() => new Notice("复制失败"),
+					);
+				},
+				onCopyImage: () => {
+					const instance = renderChild.getInfographic();
+					if (!instance) return;
+					void (async () => {
+						try {
+							const dataUrl = await instance.toDataURL({ type: "png" });
+							const outcome = await copyImageToClipboard(dataUrl, source);
+							new Notice(outcome === "image" ? "图表已复制到剪贴板" : "当前环境不支持复制图片，已复制源码；可用导出按钮保存 PNG");
+						} catch (error) {
+							console.error("[Infographic Plugin] Copy image error:", error);
+							new Notice("复制失败: " + (error instanceof Error ? error.message : String(error)));
+						}
+					})();
+				},
+				onExport: () => {
+					const instance = renderChild.getInfographic();
+					if (instance) new ExportModal(this.app, instance).open();
+				},
+				onZoomIn: () => renderChild.zoomIn(),
+				onZoomOut: () => renderChild.zoomOut(),
+				onFit: () => {
+					renderChild.fitWidth();
+					persistFenceUpdate(this.app, ctx, el, source, (fence) => clearFenceSize(fence));
+				},
+				onFullscreen: () => this.openFullscreen(result.content, result.isJson, renderChild.getInfographic()),
+			}, { showZoomControls: this.settings.enableZoom });
+		}
 
 		const doc = el.ownerDocument;
 		const settleWin = doc.defaultView;
@@ -207,6 +211,10 @@ export default class InfographicPlugin extends Plugin {
 		this.settings = {
 			theme,
 			errorBehavior,
+			enableResizeHandles: typeof data?.enableResizeHandles === "boolean" ? data.enableResizeHandles : DEFAULT_SETTINGS.enableResizeHandles,
+			enableZoom: typeof data?.enableZoom === "boolean" ? data.enableZoom : DEFAULT_SETTINGS.enableZoom,
+			showToolbar: typeof data?.showToolbar === "boolean" ? data.showToolbar : DEFAULT_SETTINGS.showToolbar,
+			centerByDefault: typeof data?.centerByDefault === "boolean" ? data.centerByDefault : DEFAULT_SETTINGS.centerByDefault,
 		};
 	}
 

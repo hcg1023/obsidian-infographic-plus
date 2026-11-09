@@ -186,7 +186,15 @@ obsidian-infographic-plus/
 
 This plugin uses [@antv/infographic](https://github.com/antvis/Infographic) for rendering. The infographic content is passed directly to the Infographic instance.
 
-For more information on infographic syntax and features, see the [Infographic documentation](https://github.com/antvis/Infographic).
+### Plugin settings
+
+| Setting | Default | Description |
+|---|---|---|
+| Drag to resize | on | Show drag handles on block edges to adjust width and height |
+| In-note zoom | on | Ctrl/Cmd+wheel zoom, drag to pan, and zoom controls on the toolbar |
+| Hover toolbar | on | Show the toolbar with copy, export and zoom actions when hovering a block. Note: with this off there is no copy/export entry |
+| Center blocks by default | off | Center blocks horizontally unless overridden by the `align=` fence parameter |
+
 
 ## Features
 

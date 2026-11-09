@@ -15,6 +15,10 @@ export interface RenderOptions {
 	explicitWidth?: number;
 	/** Fence-level height override in px (```infographic height=N) */
 	explicitHeight?: number;
+	/** 边缘拖拽调宽高手柄，缺省视为 true */
+	enableResizeHandles?: boolean;
+	/** Ctrl/Cmd+滚轮缩放与拖拽平移，缺省视为 true */
+	enableZoom?: boolean;
 	onWidthCommit?: (width: number) => void;
 	onHeightCommit?: (height: number) => void;
 	/** 适应宽度：请求宿主清除 fence 的 width/height 参数（写回源码模式生效）。 */
@@ -166,13 +170,15 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 		this.showLoading();
 		this.render();
 		this.setupResizeObserver();
-		this.setupResizeHandles();
-		this.panZoom = new PanZoomController({
-			viewportEl: this.containerEl,
-			contentEl: this.contentEl!,
-			wheelMode: "when-zoomed",
-			onChange: (state) => this.options.onPanZoomChange?.(state),
-		});
+		if (this.options.enableResizeHandles !== false) this.setupResizeHandles();
+		if (this.options.enableZoom !== false) {
+			this.panZoom = new PanZoomController({
+				viewportEl: this.containerEl,
+				contentEl: this.contentEl!,
+				wheelMode: "when-zoomed",
+				onChange: (state) => this.options.onPanZoomChange?.(state),
+			});
+		}
 	}
 
 	private getTheme(): string | undefined {
