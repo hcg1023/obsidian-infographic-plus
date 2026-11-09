@@ -44,6 +44,22 @@ const DEFAULT_ASPECT_RATIO = 4 / 3;
 const MIN_DRAG_WIDTH = 200;
 const MIN_DRAG_HEIGHT = 100;
 
+/** 块高缓存：回写 fence 触发重建时，新渲染先撑起旧高度（高度桥接），避免 CM6 在重建窗口内因高度塌缩丢失滚动锚点。 */
+const blockHeightCache = new Map<string, number>();
+const BLOCK_HEIGHT_CACHE_LIMIT = 50;
+
+export function getCachedBlockHeight(content: string): number | null {
+	return blockHeightCache.get(content) ?? null;
+}
+
+function cacheBlockHeight(content: string, height: number): void {
+	if (blockHeightCache.size >= BLOCK_HEIGHT_CACHE_LIMIT && !blockHeightCache.has(content)) {
+		const oldest: string | undefined = blockHeightCache.keys().next().value;
+		if (oldest !== undefined) blockHeightCache.delete(oldest);
+	}
+	blockHeightCache.set(content, height);
+}
+
 /**
  * 创建并渲染一个 Infographic 实例（JSON 走 parse+strip，DSL 直接 render）。
  * onInit 在构造之后、render() 之前调用——用于提前订阅 "error" 事件，
@@ -190,6 +206,7 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 			this.hideLoading();
 			this.updateAspectRatioFromSVG();
 			this.scheduleRenderSanityCheck();
+			this.rememberHeight();
 		} catch (e) {
 			const message = e instanceof Error ? e.message : String(e);
 			console.error("[Infographic Plugin] Render error:", message, {
@@ -212,6 +229,7 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 					if (width > 0) {
 						const height = this.options.explicitHeight ?? width / this.aspectRatio;
 						this.infographic.update({ width, height });
+						this.rememberHeight();
 						this.panZoom?.relayout({ resetIfZoomed: true });
 					}
 				}
@@ -326,6 +344,7 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 						this.options.explicitHeight = latestHeight; // 后续 RO/resizeToFit 尊重新高度
 						if (this.infographic) {
 							this.infographic.update({ height: latestHeight });
+							this.rememberHeight();
 						}
 						this.options.onHeightCommit?.(latestHeight);
 					} else {
@@ -333,6 +352,7 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 						// 拖拽期间 RO 被门控，松手一次性按新宽度重渲染
 						if (this.infographic) {
 							this.infographic.update({ width: latestWidth, height: this.options.explicitHeight ?? latestWidth / this.aspectRatio });
+							this.rememberHeight();
 						}
 						this.options.onWidthCommit?.(latestWidth);
 					}
@@ -342,6 +362,17 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 				handle.addEventListener("pointercancel", onEnd);
 			});
 		}
+	}
+
+	/** 渲染/尺寸变化稳定后记录当前块高，供下次重建高度桥接 */
+	private rememberHeight(): void {
+		const win = this.containerEl.ownerDocument.defaultView;
+		if (!win) return;
+		win.requestAnimationFrame(() => {
+			if (!this.containerEl.isConnected) return;
+			const height = this.containerEl.offsetHeight;
+			if (height > 0) cacheBlockHeight(this.options.content, height);
+		});
 	}
 
 	private applyWrapperWidth(wrapper: HTMLElement, width: number): void {

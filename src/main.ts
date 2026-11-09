@@ -4,7 +4,7 @@ import type { Infographic } from "@antv/infographic";
 import { DEFAULT_SETTINGS, ErrorBehavior, InfographicSettingTab, InfographicSettings, ThemeSetting } from "./settings";
 import { parseInfographicSpec, showParseError } from "./parser";
 import { getFenceAlign, parseHeightParam, parseWidthParam, persistBlockHeight, persistBlockWidth, persistFenceUpdate, resolveFenceText, setFenceAlign } from "./fence";
-import { FullscreenModal, InfographicRenderChild } from "./renderer";
+import { FullscreenModal, getCachedBlockHeight, InfographicRenderChild } from "./renderer";
 import { copyImageToClipboard, createErrorPlaceholder, createToolbar, ExportModal, SourceCodeModal } from "./ui";
 import type { ToolbarControls } from "./ui";
 
@@ -69,6 +69,11 @@ export default class InfographicPlugin extends Plugin {
 			}
 			this.handleError(el, result.error, source);
 			return;
+		}
+		// 高度桥接：重建窗口内先撑起上次高度，渲染完成后撤除（见下方 rAF）
+		const cachedHeight = getCachedBlockHeight(result.content);
+		if (cachedHeight && cachedHeight > 0) {
+			el.style.setProperty("min-height", `${cachedHeight}px`);
 		}
 
 		const container = el.createDiv({ cls: "infographic-wrapper" });
@@ -141,6 +146,16 @@ export default class InfographicPlugin extends Plugin {
 			onFit: () => renderChild.fitWidth(),
 			onFullscreen: () => this.openFullscreen(result.content, result.isJson, renderChild.getInfographic()),
 		});
+
+		const doc = el.ownerDocument;
+		const settleWin = doc.defaultView;
+		if (settleWin && cachedHeight) {
+			settleWin.requestAnimationFrame(() => {
+				settleWin.requestAnimationFrame(() => {
+					el.style.removeProperty("min-height");
+				});
+			});
+		}
 	}
 
 	private openFullscreen(content: string, isJson: boolean, instance: Infographic | null): void {
