@@ -152,8 +152,8 @@ export class PanZoomController {
 		vp.removeEventListener("wheel", this.onWheel);
 		vp.removeEventListener("pointerdown", this.onPointerDown);
 		vp.removeEventListener("dblclick", this.onDblClick);
-		this.options.contentEl.style.transform = "";
-		this.options.viewportEl.style.touchAction = "";
+		this.options.contentEl.setCssProps({ transform: "" });
+		this.options.viewportEl.setCssProps({ "touch-action": "" });
 		this.options.viewportEl.classList.remove("infographic-panning");
 	}
 
@@ -178,7 +178,7 @@ export class PanZoomController {
 
 	private paint(): void {
 		const { scale, x, y } = this.state;
-		this.options.contentEl.style.transformOrigin = "0 0";
+		this.options.contentEl.setCssProps({ "transform-origin": "0 0" });
 		this.options.contentEl.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
 		// fit 态把垂直滑动还给笔记（pan-y）；放大后才独占触摸
 		this.options.viewportEl.style.touchAction = this.isZoomed() ? "none" : "pan-y";
