@@ -66,6 +66,10 @@
 
 - `insert-template`：光标处插入 ```infographic 围栏 + 三步 JSON 模板（`list-row-simple-horizontal-arrow`，与上游 INFOGRAPHIC_TEMPLATE 一致），光标落在模板内，插入后即刻渲染。
 
+### 错误占位卡（统一失败呈现）
+
+解析失败（非法 JSON/空块）、渲染失败（库 throw 或 `emit('error')`）、渲染产物为空（如模板名错误，库可能不报错只产出空 SVG）三种路径**必须**落到同一张错误占位卡：图标（lucide `circle-alert`）+ 错误信息 +（按 errorBehavior 设置）"View details" 按钮打开 SourceCodeModal 或直接附源码。**任何失败路径不得留下高度为 0 的透明块或空白占位**；`hide` 模式（用户显式选择）除外。产物为空的兜底：渲染后 rAF 检测 SVG 缺失或 `getBoundingClientRect().height < 1` 即按渲染失败处理。
+
 ## 4. 功能边界
 
 | 层级 | 内容 | 依据 |
@@ -86,6 +90,7 @@ src/
   renderer/InfographicView.ts # MarkdownRenderChild：RO、viewBox 宽高比推导、拖宽手柄
   renderer/PanZoomController.ts   # 新增：视图层缩放/平移控制器
   renderer/FullscreenModal.ts     # 新增：全屏查看器（复用 PanZoomController）
+  ui/ErrorPlaceholder.ts      # 新增：统一错误占位卡（解析失败/渲染失败/零高度产物共用）
   ui/Toolbar.ts               # hover 工具栏（从上游 main.ts:307-353 抽出）
   ui/ExportModal.ts
   ui/SourceModal.ts
@@ -147,6 +152,7 @@ export declare class PanZoomController {
 | R9 | 库 0.2.7→0.2.20 行为差异回归 | 中 | 升级后用 README 全部示例 + 存量笔记人工比对 |
 | R10 | ResizeObserver 不可用（防御） | 低 | 降级为一次性定宽渲染（parentElement.clientWidth） |
 | R11 | toDataURL PNG 失败 | 低 | PNG → SVG 回退链（导出按钮内） |
+| R12 | 渲染产物为空（模板名/数据错误时库可能不报错只产出空 SVG）→ 用户看到高度 0 的透明块 | 高 | 渲染后 rAF 零高度检测（svg 缺失或 height<1）→ 按渲染失败走错误占位卡（§3 错误占位卡） |
 
 ## 8. 许可合规
 
@@ -168,7 +174,7 @@ export declare class PanZoomController {
 1. **生命周期**：长笔记反复滚动/切换 30+ 次，DOM 节点与堆内存不持续增长；卸载插件无残留。
 2. **双语法**：官方 JSON 与 DSL 示例均渲染；非法 JSON 显示可诊断错误。
 3. **响应式**：拖分栏线图表跟随新宽度、宽高比保持。
-4. **错误三模式**：show-code/show-error/hide 生效；View details 打开 SourceModal。
+4. **错误三模式与占位卡**：show-code/show-error/hide 生效；View details 打开 SourceModal；解析失败、渲染失败、未知模板名三种输入均显示错误占位卡（图标+信息），**页面中不存在高度为 0 的透明/空白块**（hide 模式除外）。
 5. **工具栏**：hover（移动端 tap）出现；复制源码/复制图片/导出 PNG+SVG 可用（移动端降级有 Notice）；右键恢复原生行为。
 6. **缩放红线**：fit 态普通滚轮滚笔记；Ctrl/Cmd+滚轮缩放；放大后滚轮缩放/拖拽平移/双击复位；百分比实时；导出不受缩放影响。
 7. **全屏**：打开即 fit 屏幕；缩放/平移/重置/Esc/导出可用。

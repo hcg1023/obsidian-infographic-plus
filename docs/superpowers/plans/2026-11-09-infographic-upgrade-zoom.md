@@ -358,36 +358,41 @@ git commit -m "feat: declarative settings with auto theme and old defaultTheme m
 **Files:**
 - Create: `src/renderer/InfographicView.ts`
 - Create: `src/renderer/index.ts`
+- Create: `src/ui/ErrorPlaceholder.ts`
+- Create: `src/ui/index.ts`
 - Create: `src/types/obsidian-window.ts`
 - Create: `src/styles` 无——样式统一在 Task 6 的 `styles.css`。
 
 **Interfaces:**
 - Consumes: `parseInfographicSpec`（Task 2）；`InfographicSettings`（Task 3）。
 - Produces:
-  - `interface RenderOptions { content: string; isJson: boolean; theme: ThemeSetting; isDarkMode: boolean; explicitWidth?: number; onWidthCommit?: (width: number) => void }`
+  - `interface RenderOptions { content: string; isJson: boolean; theme: ThemeSetting; isDarkMode: boolean; explicitWidth?: number; onWidthCommit?: (width: number) => void; onRenderError?: (message: string) => void }`
   - `class InfographicRenderChild extends MarkdownRenderChild`：`ensureStarted()`、`getInfographic(): Infographic | null`
   - `interface RenderPayload { content: string; isJson: boolean; theme?: string; width: number; height: number; explicitWidth?: number }`
   - `function renderInfographicInto(container: HTMLElement, payload: RenderPayload): Infographic`（Task 9 全屏 Modal 复用）
+  - `interface ErrorPlaceholderOptions { message: string; onDetails?: () => void }`
+  - `function createErrorPlaceholder(parent: HTMLElement, options: ErrorPlaceholderOptions): void`（Task 8 解析错误路径复用；spec §3 错误占位卡）
 - 本任务**不含** PanZoom 集成（Task 6 做）、**不含** print 快照（spec 砍单）。
 
 - [ ] **Step 1: 建骨架与移植**
 
-`mkdir -p src/renderer src/types`。`src/types/obsidian-window.ts` = 上游同名文件逐字复制（22 行，含 `declare global` Window.createEl 等 5 个_augments），文件头加署名注释。
+`mkdir -p src/renderer src/types src/ui`。`src/types/obsidian-window.ts` = 上游同名文件逐字复制（22 行，含 `declare global` Window.createEl 等 5 个_augments），文件头加署名注释。
 
 `src/renderer/InfographicView.ts` 以 `/tmp/upstream-infographic/src/renderer/InfographicView.ts`（346 行）为底本，文件头加署名注释，按以下清单改造（其余逐字保留）：
 
 1. **删除** print 相关：import `persistSnapshotDataUrl`；`RenderOptions` 的 `app`、`cacheDir` 字段；字段 `snapshotRefreshTimer`；方法 `getPrintContainerEl`/`setPrintSnapshot`/`schedulePrintSnapshotRefresh`/`generatePrintSnapshot`（282-345 行）；`render()` 内的 `this.schedulePrintSnapshotRefresh()` 调用；`cleanup()` 内 timer 清理段（RO 段保留）。
 2. **改 RenderOptions** 为 Produces 所列形状（去掉 `isPrinting`，本任务不需要）。
-3. **错误订阅（spec R5）**：`render()` 中 `new Infographic(...)` 后立即：
+3. **错误订阅（spec R5）**：`render()` 中 `new Infographic(...)` 后立即（注意走 `reportRenderError` 统一分发，见第 5 条）：
 
 ```ts
 			instance.on("error", (error: unknown) => {
 				const message = error instanceof Error ? error.message : String(error);
 				console.error("[Infographic Plugin] Render error event:", message);
 				this.hideLoading();
-				this.renderError(message);
+				this.reportRenderError(message);
 			});
 ```
+（`render()` 的 catch 分支里原来的 `this.renderError(message)` 同样改为 `this.reportRenderError(message)`。）
 
 4. **抽出 `renderInfographicInto`**：把 `render()` 里 JSON/DSL 两分支的实例构造逻辑提为模块级导出函数（JSON 分支的 strip width/height/theme 逻辑保留），`render()` 调用它：
 
@@ -430,9 +435,82 @@ export function renderInfographicInto(container: HTMLElement, payload: RenderPay
 }
 ```
 
-`render()` 内改为：`this.infographic = renderInfographicInto(this.containerEl, { content, isJson, theme, width, height, explicitWidth })` 后接 Step 3 的错误订阅（订阅的是 `this.infographic`）。
+`render()` 内改为：`this.infographic = renderInfographicInto(this.containerEl, { content, isJson, theme, width, height, explicitWidth })` 后接第 3 条的错误订阅（订阅的是 `this.infographic`）。
 
-5. **拖宽期间不逐帧重渲染（spec R4）**：加字段 `private isResizing = false;`；`setupResizeHandles` 的 `pointerdown` 回调开头加 `this.isResizing = true;`；`onEnd` 末尾改为：
+5. **错误占位卡与零高度兜底（spec §3 错误占位卡、R12）**——先建共享占位组件 `src/ui/ErrorPlaceholder.ts`：
+
+```ts
+import { setIcon } from "obsidian";
+
+export interface ErrorPlaceholderOptions {
+	message: string;
+	/** 可选"View details"动作（如打开 SourceCodeModal） */
+	onDetails?: () => void;
+}
+
+/**
+ * 统一错误占位卡：解析失败/渲染失败/零高度产物都渲染它，
+ * 绝不留高度为 0 的透明块或空白占位（spec §3）。
+ */
+export function createErrorPlaceholder(parent: HTMLElement, options: ErrorPlaceholderOptions): void {
+	parent.addClass("infographic-error-block");
+	const header = parent.createDiv({ cls: "infographic-error-header" });
+	const icon = header.createSpan({ cls: "infographic-error-icon" });
+	setIcon(icon, "circle-alert");
+	header.createSpan({ text: `Error: ${options.message}` });
+	if (options.onDetails) {
+		const detailsBtn = parent.createEl("button", { text: "View details", cls: "infographic-error-details-btn" });
+		detailsBtn.addEventListener("click", options.onDetails);
+	}
+}
+```
+
+`src/ui/index.ts`（Task 7 会追加其余导出）：
+
+```ts
+export { createErrorPlaceholder } from "./ErrorPlaceholder";
+export type { ErrorPlaceholderOptions } from "./ErrorPlaceholder";
+```
+
+然后给 `InfographicRenderChild` 加三个成员（import `createErrorPlaceholder` 自 `../ui/ErrorPlaceholder`）：
+
+```ts
+	/** 渲染失败统一出口：优先交宿主（走错误三模式），否则本地占位卡兜底 */
+	private reportRenderError(message: string): void {
+		if (this.options.onRenderError) {
+			this.options.onRenderError(message);
+			return;
+		}
+		this.renderError(message);
+	}
+
+	private renderError(message: string): void {
+		this.containerEl.empty();
+		createErrorPlaceholder(this.containerEl, { message: `Failed to render infographic: ${message}` });
+	}
+
+	/**
+	 * 零高度兜底：库对未知模板名等可能不报错只产出空 SVG（spec R12）。
+	 * 渲染后 rAF 检查 svg 缺失或高度 <1px，按渲染失败走占位卡。
+	 */
+	private scheduleRenderSanityCheck(): void {
+		const win = this.containerEl.ownerDocument.defaultView;
+		if (!win) return;
+		win.requestAnimationFrame(() => {
+			if (!this.infographic || !this.containerEl.isConnected) return;
+			const svg = this.containerEl.querySelector("svg");
+			const height = svg?.getBoundingClientRect().height ?? 0;
+			if (!svg || height < 1) {
+				this.hideLoading();
+				this.reportRenderError("渲染结果为空（请检查 template 模板名与数据是否有效）");
+			}
+		});
+	}
+```
+
+（上游原有的 `renderError` 方法体替换为上面的新实现。）`render()` 成功路径末尾（`updateAspectRatioFromSVG()` 调用之后）追加 `this.scheduleRenderSanityCheck();`。
+
+6. **拖宽期间不逐帧重渲染（spec R4）**：加字段 `private isResizing = false;`；`setupResizeHandles` 的 `pointerdown` 回调开头加 `this.isResizing = true;`；`onEnd` 末尾改为：
 
 ```ts
 				this.isResizing = false;
@@ -446,7 +524,7 @@ export function renderInfographicInto(container: HTMLElement, payload: RenderPay
 
 `setupResizeObserver` 回调开头加门控：`if (this.isResizing) return;`。
 
-6. `cleanup()`（onunload 清理链，spec §9 顺序，本任务暂无 controller，Task 6 补第 1 步）：
+7. `cleanup()`（onunload 清理链，spec §9 顺序，本任务暂无 controller，Task 6 补第 1 步）：
 
 ```ts
 	private cleanup(): void {
@@ -472,7 +550,7 @@ Run: `npm run build` → 零错误（此文件尚未被 main.ts 引用，属预�
 - [ ] **Step 3: Commit**
 
 ```bash
-git add src/renderer src/types
+git add src/renderer src/types src/ui
 git commit -m "feat: port InfographicRenderChild with lifecycle, resize observer and error events"
 ```
 
@@ -1020,8 +1098,27 @@ git commit -m "feat: add PanZoomController with anchored zoom, clamped pan and p
 }
 
 .infographic-error-header {
+	display: flex;
+	align-items: center;
+	gap: 0.4em;
 	color: var(--text-error);
 	margin-bottom: 0.5em;
+}
+
+.infographic-error-icon {
+	display: inline-flex;
+	flex: none;
+}
+
+.infographic-error-icon svg {
+	width: 16px;
+	height: 16px;
+}
+
+.infographic-error-details-btn {
+	margin-bottom: 0.5em;
+	padding: 0.25em 0.75em;
+	border-radius: var(--radius-s);
 }
 
 .infographic-error-source {
@@ -1096,7 +1193,7 @@ git commit -m "feat: wire in-note pan/zoom viewport layer with print-safe styles
 - Create: `src/ui/Toolbar.ts`
 - Create: `src/ui/ExportModal.ts`
 - Create: `src/ui/SourceModal.ts`
-- Create: `src/ui/index.ts`
+- Modify: `src/ui/index.ts`（Task 4 已创建，追加其余导出）
 - Modify: `styles.css`（追加工具栏样式）
 
 **Interfaces:**
@@ -1205,9 +1302,11 @@ export async function copyImageToClipboard(dataUrl: string, fallbackText: string
 }
 ```
 
-`src/ui/index.ts`：
+`src/ui/index.ts` 追加为（保留 Task 4 已有的 ErrorPlaceholder 两行）：
 
 ```ts
+export { createErrorPlaceholder } from "./ErrorPlaceholder";
+export type { ErrorPlaceholderOptions } from "./ErrorPlaceholder";
 export { createToolbar, copyImageToClipboard, dataUrlToBlob } from "./Toolbar";
 export type { ToolbarHandlers, ToolbarControls } from "./Toolbar";
 export { ExportModal } from "./ExportModal";
@@ -1329,7 +1428,7 @@ git commit -m "feat: add hover toolbar, export/source modals and clipboard fallb
 - Rewrite: `src/main.ts`（全文替换，旧 `renderInfographic`/`dataUrlToBlob`/右键菜单/`settingsToOptions` 全部删除）
 
 **Interfaces:**
-- Consumes: Task 2 `parseInfographicSpec`/`showParseError`/`resolveFenceText`/`parseWidthParam`/`getFenceAlign`/`setFenceAlign`/`persistBlockWidth`/`persistFenceUpdate`；Task 4 `InfographicRenderChild`；Task 6 `getPanZoom`/`zoomIn`/`zoomOut`/`fitWidth`；Task 7 `createToolbar`/`copyImageToClipboard`/`ExportModal`/`SourceCodeModal`；Task 3 设置。Task 9 的 `FullscreenModal` 本任务先不引用（openFullscreen 为临时 Notice，Task 9 替换）。
+- Consumes: Task 2 `parseInfographicSpec`/`showParseError`/`resolveFenceText`/`parseWidthParam`/`getFenceAlign`/`setFenceAlign`/`persistBlockWidth`/`persistFenceUpdate`；Task 4 `InfographicRenderChild`/`RenderOptions.onRenderError`/`createErrorPlaceholder`；Task 6 `getPanZoom`/`zoomIn`/`zoomOut`/`fitWidth`；Task 7 `createToolbar`/`copyImageToClipboard`/`ExportModal`/`SourceCodeModal`；Task 3 设置。Task 9 的 `FullscreenModal` 本任务先不引用（openFullscreen 为临时 Notice，Task 9 替换）。
 - Produces: 插件完整行为（spec §3 笔记内交互、§4 P0/P1 全部、§10 验收 1-6/8/9）；`INFOGRAPHIC_TEMPLATE` 常量。
 
 - [ ] **Step 1: 重写 src/main.ts（全文）**
@@ -1341,7 +1440,7 @@ import { DEFAULT_SETTINGS, ErrorBehavior, InfographicSettingTab, InfographicSett
 import { parseInfographicSpec, showParseError } from "./parser";
 import { getFenceAlign, parseWidthParam, persistBlockWidth, persistFenceUpdate, resolveFenceText, setFenceAlign } from "./fence";
 import { InfographicRenderChild } from "./renderer";
-import { copyImageToClipboard, createToolbar, ExportModal, SourceCodeModal } from "./ui";
+import { copyImageToClipboard, createErrorPlaceholder, createToolbar, ExportModal, SourceCodeModal } from "./ui";
 import type { ToolbarControls } from "./ui";
 
 const INFOGRAPHIC_TEMPLATE = `{
@@ -1429,6 +1528,7 @@ export default class InfographicPlugin extends Plugin {
 			isDarkMode: this.isDarkMode(),
 			explicitWidth: fenceWidth ?? undefined,
 			onWidthCommit: (width) => persistBlockWidth(this.app, ctx, el, source, width),
+			onRenderError: (message) => this.handleError(el, message, source),
 			onPanZoomChange: (state) => toolbarControls?.setZoomPercent(state.scale * 100),
 		});
 		ctx.addChild(renderChild);
@@ -1482,6 +1582,7 @@ export default class InfographicPlugin extends Plugin {
 		new Notice("全屏查看器将在下一任务启用");
 	}
 
+	/** 统一错误呈现（spec §3 错误占位卡）：解析失败与渲染失败共用，按 errorBehavior 走三模式 */
 	private handleError(el: HTMLElement, error: string, source: string): void {
 		const behavior: ErrorBehavior = this.settings.errorBehavior;
 		el.empty();
@@ -1489,15 +1590,16 @@ export default class InfographicPlugin extends Plugin {
 			el.addClass("infographic-hidden");
 			return;
 		}
-		el.addClass("infographic-error-block");
-		el.createDiv({ cls: "infographic-error-header" }).setText(`Error: ${error}`);
-		if (behavior === "show-error") {
-			const detailsBtn = el.createEl("button", { text: "View details", cls: "infographic-error-details-btn" });
-			detailsBtn.addEventListener("click", () => new SourceCodeModal(this.app, source).open());
-			return;
+		createErrorPlaceholder(el, {
+			message: error,
+			onDetails: behavior === "show-error"
+				? () => new SourceCodeModal(this.app, source).open()
+				: undefined,
+		});
+		if (behavior === "show-code") {
+			const pre = el.createEl("pre", { cls: "infographic-error-source" });
+			pre.createEl("code").setText(source);
 		}
-		const pre = el.createEl("pre", { cls: "infographic-error-source" });
-		pre.createEl("code").setText(source);
 	}
 
 	async loadSettings() {
@@ -1532,7 +1634,7 @@ Expected: 零错误、零未使用 import 告警（eslint: `npm run lint` 也跑
 标准冒烟后逐项核对：
 1. JSON 块按 `width=500 align=center` 渲染且居中、宽 500px（不超栏宽）。
 2. DSL 块渲染。
-3. 非法 JSON 块：默认显示 Error + 源码；设置切 show-error → 只显错误 + View details 按钮 → 打开源码弹窗；切 hide → 块消失。
+3. 非法 JSON 块：默认（show-code）显示带 `circle-alert` 图标的错误占位卡 + 源码；设置切 show-error → 占位卡 + View details 按钮 → 打开源码弹窗；切 hide → 块消失。**追加两个输入**：空 infographic 块、DSL 首行写不存在的模板名（如 `infographic no-such-template`）——两者都必须显示错误占位卡（后者由零高度兜底触发）；DevTools 检查所有失败块 `getBoundingClientRect().height > 0`，页面中不存在高度 0 的透明/空白块（hide 模式除外）。
 4. hover 出工具栏；复制源码/导出 PNG/导出 SVG 可用；复制图片在桌面端写入剪贴板图片；右键图表 = Obsidian 原生菜单（旧自定义菜单已删）。
 5. 缩放红线：fit 态普通滚轮滚动的是笔记；Ctrl/Cmd+滚轮以光标为锚缩放；点 ＋/− 步进缩放、百分比联动；放大后拖拽平移（grab 光标）、双击复位、scan 按钮复位。
 6. 源码模式下拖右上手柄调宽：拖动中不逐帧重渲（CPU 平稳），松手图表按新宽重渲染且 fence 行回写 `width=N`；阅读模式下拖动手柄松手**不**改文件。
@@ -1818,6 +1920,6 @@ git commit -m "docs: document zoom/fullscreen features, bump 1.1.0, add upstream
 
 ## 计划自查记录（writing-plans Self-Review）
 
-1. **Spec 覆盖**：spec §2（方案 A 数学/边界/滚轮策略/移动端）→ Task 5/6；§3 交互（工具栏/缩放控件/全屏/命令）→ Task 7/8/9；§4 P0（升级/生命周期/双语法/响应式/错误三模式/minAppVersion/迁移）→ Task 1/2/3/4/8/10，P1（工具栏/缩放/全屏/fence/命令/声明式设置）→ Task 3/6/7/8/9；§5 目录 → 各任务 Files 与产出完全一致（renderer 3 文件 + ui 4 文件 + fence + parser + types）；§6 接口 → Task 5 Produces 与 spec 签名一致；§7 R1-R11 → R1(数学断言)、R2(relayout reset)、R3(wheelMode 红线)、R4(isResizing 门控)、R5(error 订阅)、R6(ownerDocument.defaultView)、R7(降级链)、R8(唯一定位移植)、R9(Task 1 Step 6 回归)、R10(loading/onClose destroy)、R11(PNG→SVG 上游 ExportModal 链) 均有落点；§8 合规 → Task 1/10；§9 清理链 → Task 6 Step 1.6 / Task 4 Step 1.6；§10 十条 → Task 8 Step 3 / Task 9 Step 4 / Task 10 Step 4。无缺口。
+1. **Spec 覆盖**：spec §2（方案 A 数学/边界/滚轮策略/移动端）→ Task 5/6；§3 交互（工具栏/缩放控件/全屏/命令/**错误占位卡**）→ Task 7/8/9 + Task 4 第 5 条（ErrorPlaceholder + 零高度兜底）+ Task 8 Step 3 冒烟第 3 条；§4 P0（升级/生命周期/双语法/响应式/错误三模式/minAppVersion/迁移）→ Task 1/2/3/4/8/10，P1（工具栏/缩放/全屏/fence/命令/声明式设置）→ Task 3/6/7/8/9；§5 目录 → 各任务 Files 与产出一致（renderer 3 文件 + ui 5 文件 + fence + parser + types）；§6 接口 → Task 5 Produces 与 spec 签名一致；§7 R1-R12 → R1(数学断言)、R2(relayout reset)、R3(wheelMode 红线)、R4(isResizing 门控)、R5(error 订阅→reportRenderError)、R6(ownerDocument.defaultView)、R7(降级链)、R8(唯一定位移植)、R9(Task 1 Step 6 回归)、R10(loading/onClose destroy)、R11(PNG→SVG 上游 ExportModal 链)、R12(scheduleRenderSanityCheck 零高度检测→占位卡) 均有落点；§8 合规 → Task 1/10；§9 清理链 → Task 4 第 7 条 / Task 6 第 6 条；§10 十条（验收 4 含占位卡与零高度断言）→ Task 8 Step 3 / Task 9 Step 4 / Task 10 Step 4。无缺口。
 2. **占位符扫描**：已复核全文无 "TBD/TODO/适当处理" 类空洞步骤；代码步骤均为可直接落盘的完整代码或精确到行号的移植指令。唯一有意的临时实现是 Task 8 `openFullscreen` 的 Notice 占位（FullscreenModal 在 Task 9 才创建），Task 9 Step 2 显式替换为最终实现，中间状态可构建、可冒烟。
-3. **类型一致性**：`ParseResult`/`parseInfographicSpec`（Task 2↔8）；`RenderOptions.onPanZoomChange`、`getPanZoom/zoomIn/zoomOut/fitWidth`（Task 6↔8）；`renderInfographicInto(container, payload)`（Task 4↔9）；`createToolbar(parent, handlers): ToolbarControls`、`copyImageToClipboard(dataUrl, fallbackText)`（Task 7↔8）；`FullscreenPayload`（Task 9↔8 的 openFullscreen）；`theme: ThemeSetting`（settings ↔ RenderOptions）——签名已逐一核对一致。
+3. **类型一致性**：`ParseResult`/`parseInfographicSpec`（Task 2↔8）；`RenderOptions.onRenderError`/`onPanZoomChange`、`getPanZoom/zoomIn/zoomOut/fitWidth`（Task 4/6↔8）；`renderInfographicInto(container, payload)`（Task 4↔9）；`createErrorPlaceholder(parent, {message, onDetails})`（Task 4↔8）；`createToolbar(parent, handlers): ToolbarControls`、`copyImageToClipboard(dataUrl, fallbackText)`（Task 7↔8）；`FullscreenPayload`（Task 9↔8 的 openFullscreen）；`theme: ThemeSetting`（settings ↔ RenderOptions）——签名已逐一核对一致。
