@@ -134,15 +134,15 @@ The rendered infographic is interactive:
 | Toolbar `+` / `−` / fit buttons | Zoom in, zoom out, or reset |
 | Fullscreen viewer | Wheel always zooms; drag pans; export the full image or copy the source |
 
-Open the fullscreen viewer via the toolbar maximize button. The `infographic: Insert template from clipboard` command inserts a ready-made template into the current note.
+Open the fullscreen viewer via the toolbar maximize button. The `infographic: Insert infographic template` command inserts a ready-made template into the current note.
 
 ## Export
 
-Right-click on the rendered infographic to access the following options:
+Hover over the rendered infographic (or tap it on mobile) to reveal the toolbar — since mobile has no right-click menu, the toolbar is the only export entry point:
 
-1. **Copy** - Copy the infographic (PNG format) to clipboard for pasting into other applications
-2. **Export as PNG** - Download the infographic as a PNG image file
-3. **Export as SVG** - Download the infographic as an SVG vector file
+1. **Copy source** - Copy the infographic source code to the clipboard
+2. **Copy image** - Copy the infographic (PNG format) to clipboard for pasting into other applications
+3. **Export PNG / SVG** - Open the export dialog to download the infographic as a PNG image or an SVG vector file
 
 ## Development
 
@@ -198,13 +198,13 @@ For more information on infographic syntax and features, see the [Infographic do
 - Error handling with friendly error placeholder cards
 - Requires Obsidian 1.13+
 
-## License
-
-MIT License
-
 ## Acknowledgments
 
 This plugin incorporates code ported and modified from [shuuul/obsidian-infographic](https://github.com/shuuul/obsidian-infographic) (v0.2.0, Apache-2.0) — the dual-syntax parser, the MarkdownRenderChild renderer with resize handling, fence parameter parsing/persistence, and the export/source modals. Ported files carry an Apache-2.0 header notice; see `LICENSE-APACHE-2.0`. Changes: removed the PDF print-snapshot pipeline, reworked toolbar/zoom integration, added PanZoomController and the fullscreen viewer. The remainder of this plugin is MIT licensed.
+
+## License
+
+MIT License
 
 ## Credits
 

@@ -148,7 +148,7 @@ export declare class PanZoomController {
 | R5 | 库 0.2.20 解析错误 `emit('error')` 不 throw，try/catch 静默失效 | 高 | 强制 `instance.on('error', …)` 订阅 + try/catch 兜底，两路都进错误三模式 |
 | R6 | popout 窗口 rAF/监听引用主 window | 中 | 统一 `ownerDocument.defaultView`；保留 types/obsidian-window.ts |
 | R7 | ClipboardItem 部分移动 WebView 不支持 | 中 | 降级链：`clipboard.write(PNG)` → `writeText(源码)` + Notice 引导导出 |
-| R8 | fence 回写误定位改坏笔记 | 高 | 只吸收上游唯一定位守卫（`findUniqueBlockFence` matches===1）；阅读模式/hover 他文件/重复块三场景均放弃回写（重复块给"宽度仅本次会话生效"Notice） |
+| R8 | fence 回写误定位改坏笔记 | 高 | 只吸收上游唯一定位守卫（`findUniqueBlockFence` matches===1）；阅读模式/hover 他文件/重复块三场景均放弃回写（重复块给"宽度仅本次会话生效"Notice）。实现偏离：三场景（阅读模式/hover 他文件/重复块）均静默放弃持久化，不弹 Notice——避免每次拖动打扰；用户可从宽度未回写感知 |
 | R9 | 库 0.2.7→0.2.20 行为差异回归 | 中 | 升级后用 README 全部示例 + 存量笔记人工比对 |
 | R10 | ResizeObserver 不可用（防御） | 低 | 降级为一次性定宽渲染（parentElement.clientWidth） |
 | R11 | toDataURL PNG 失败 | 低 | PNG → SVG 回退链（导出按钮内） |
