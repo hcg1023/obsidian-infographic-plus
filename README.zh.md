@@ -1,4 +1,4 @@
-# obsidian-infographic-plus
+# AntV Infographic
 
 > 使用 [@antv/infographic](https://github.com/antvis/Infographic) 渲染信息图表的 Obsidian 插件
 

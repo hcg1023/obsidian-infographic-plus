@@ -1,4 +1,4 @@
-# obsidian-infographic-plus
+# AntV Infographic
 
 > Obsidian plugin for rendering infographic diagrams using [@antv/infographic](https://github.com/antvis/Infographic)
 

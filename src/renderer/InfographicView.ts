@@ -56,7 +56,7 @@ export function getCachedBlockHeight(content: string): number | null {
 
 function cacheBlockHeight(content: string, height: number): void {
 	if (blockHeightCache.size >= BLOCK_HEIGHT_CACHE_LIMIT && !blockHeightCache.has(content)) {
-		const oldest = blockHeightCache.keys().next().value as string | undefined;
+		const oldest = blockHeightCache.keys().next().value;
 		if (oldest !== undefined) blockHeightCache.delete(oldest);
 	}
 	blockHeightCache.set(content, height);

@@ -101,7 +101,7 @@ export class PanZoomController {
 		options.viewportEl.addEventListener("wheel", this.onWheel, { passive: false });
 		options.viewportEl.addEventListener("pointerdown", this.onPointerDown);
 		options.contentEl.addEventListener("dblclick", this.onDblClick);
-		this.options.viewportEl.style.touchAction = (this.isZoomed() || this.options.wheelMode === "always") ? "none" : "pan-y";
+		this.options.viewportEl.setCssProps({ "touch-action": (this.isZoomed() || this.options.wheelMode === "always") ? "none" : "pan-y" });
 	}
 
 	getState(): PanZoomState {
@@ -182,7 +182,7 @@ export class PanZoomController {
 		this.options.contentEl.setCssProps({ "transform-origin": "0 0" });
 		this.options.contentEl.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
 		// fit 态把垂直滑动还给笔记（pan-y）；放大后才独占触摸
-		this.options.viewportEl.style.touchAction = (this.isZoomed() || this.options.wheelMode === "always") ? "none" : "pan-y";
+		this.options.viewportEl.setCssProps({ "touch-action": (this.isZoomed() || this.options.wheelMode === "always") ? "none" : "pan-y" });
 		this.options.onChange?.(this.state);
 	}
 

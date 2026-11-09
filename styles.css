@@ -177,13 +177,10 @@
 @media print {
 	.infographic-toolbar,
 	.infographic-resize-handle {
-		display: none !important;
+		display: none;
 	}
 	.infographic-viewport {
 		overflow: visible;
-	}
-	.infographic-wrapper {
-		break-inside: avoid;
 	}
 }
 
