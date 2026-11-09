@@ -160,3 +160,97 @@
 		break-inside: avoid;
 	}
 }
+
+/* hover 工具栏 */
+.infographic-toolbar {
+	position: absolute;
+	top: 6px;
+	right: 6px;
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	padding: 2px 4px;
+	border-radius: var(--radius-s);
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	opacity: 0;
+	transition: opacity 0.15s ease;
+	z-index: 10;
+	user-select: none;
+}
+
+.infographic-wrapper:hover .infographic-toolbar,
+.infographic-toolbar:focus-within {
+	opacity: 1;
+}
+
+.infographic-toolbar-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 26px;
+	height: 26px;
+	padding: 0;
+	margin: 0;
+	border: none;
+	border-radius: var(--radius-s);
+	background: transparent;
+	color: var(--text-muted);
+	cursor: pointer;
+}
+
+.infographic-toolbar-btn:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.infographic-toolbar-btn svg {
+	width: 15px;
+	height: 15px;
+}
+
+.infographic-toolbar-separator {
+	width: 1px;
+	height: 16px;
+	margin: 0 3px;
+	background: var(--background-modifier-border);
+}
+
+.infographic-center-btn-active {
+	color: var(--interactive-accent);
+}
+
+.infographic-center-btn-active:hover {
+	color: var(--interactive-accent);
+}
+
+/* 导出弹窗按钮组（上游样式） */
+.infographic-export-modal h2 {
+	margin-top: 0;
+}
+
+.infographic-export-buttons {
+	display: flex;
+	gap: 0.5em;
+	justify-content: flex-end;
+	margin-top: 1em;
+}
+
+.infographic-export-buttons button {
+	padding: 0.4em 1em;
+	border-radius: var(--radius-s);
+}
+
+/* 源码弹窗 */
+.infographic-source-modal .infographic-source-code pre {
+	max-height: 60vh;
+	overflow: auto;
+	user-select: text;
+}
+
+.infographic-source-buttons {
+	display: flex;
+	gap: 0.5em;
+	justify-content: flex-end;
+	margin-top: 1em;
+}
