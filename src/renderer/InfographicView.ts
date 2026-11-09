@@ -55,9 +55,12 @@ export function getCachedBlockHeight(content: string): number | null {
 }
 
 function cacheBlockHeight(content: string, height: number): void {
-	if (blockHeightCache.size >= BLOCK_HEIGHT_CACHE_LIMIT && !blockHeightCache.has(content)) {
-		const oldest = blockHeightCache.keys().next().value;
-		if (oldest !== undefined) blockHeightCache.delete(oldest);
+	if (!blockHeightCache.has(content) && blockHeightCache.size >= BLOCK_HEIGHT_CACHE_LIMIT) {
+		// FIFO 淘汰最旧键；for..of 迭代键类型为 string，避开 next().value 的 any 断言
+		for (const oldest of blockHeightCache.keys()) {
+			blockHeightCache.delete(oldest);
+			break;
+		}
 	}
 	blockHeightCache.set(content, height);
 }
