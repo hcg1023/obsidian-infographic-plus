@@ -1,4 +1,4 @@
-# obsidian-infographic
+# obsidian-infographic-plus
 
 > Obsidian plugin for rendering infographic diagrams using [@antv/infographic](https://github.com/antvis/Infographic)
 
@@ -6,26 +6,47 @@
 
 ## Installation
 
-> **Note**: This plugin is not yet published in the Obsidian plugin marketplace. Please use one of the following methods to install it manually:
+### Method 1: Install from the Community Plugin Store (Recommended)
 
-### Method 1: Install via Obsidian BRAT Plugin (Recommended)
+1. Open **Settings → Community plugins** in Obsidian.
+2. Click **Browse** and search for **"AntV Infographic"**.
+3. Click **Install**, then **Enable**.
 
-1. Make sure you have installed [BRAT plugin](https://github.com/TfTHacker/obsidian42-brat)
+> If the plugin doesn't show up in search yet, it may still be under review — use one of the methods below in the meantime.
+
+### Method 2: Pre-built Files Only
+
+1. Download the following files from the [latest release](https://github.com/hcg1023/obsidian-infographic-plus/releases/latest):
+   - `main.js`
+   - `manifest.json`
+   - `styles.css`
+
+2. Create an `antv-infographic-plus` folder in your vault's `.obsidian/plugins/` directory (if it doesn't exist)
+
+3. Place the downloaded files in `.obsidian/plugins/antv-infographic-plus/`
+
+4. Enable the plugin in Obsidian settings
+
+### Method 3: Install via Obsidian BRAT Plugin
+
+Useful for tracking beta builds before they reach the store:
+
+1. Make sure you have installed the [BRAT plugin](https://github.com/TfTHacker/obsidian42-brat)
 2. In BRAT settings, click the "Add a beta plugin" button and add this plugin's GitHub repository URL:
    ```
-   https://github.com/hcg1023/obsidian-infographic
+   https://github.com/hcg1023/obsidian-infographic-plus
    ```
 3. Version Selection
    - Select "Latest version", or install a specific version as needed
 4. Click the Add Plugin button and BRAT will automatically download and install the latest version of the plugin
 
-### Method 2: Build from Source
+### Method 4: Build from Source
 
 1. Clone the project to your Obsidian plugins directory:
    ```bash
    cd ~/.obsidian/plugins
-   git clone https://github.com/hcg1023/obsidian-infographic.git
-   cd obsidian-infographic
+   git clone https://github.com/hcg1023/obsidian-infographic-plus.git
+   cd obsidian-infographic-plus
    ```
 
 2. Install dependencies and build:
@@ -35,26 +56,6 @@
    ```
 
 3. Enable the plugin in Obsidian settings
-
-### Method 3: Download Source + Pre-built File
-
-1. Download the project source code to `.obsidian/plugins` directory
-2. Download the `main.js` file from the [latest release](https://github.com/hcg1023/obsidian-infographic/releases/latest)
-3. Place `main.js` in `.obsidian/plugins/obsidian-infographic/` directory
-4. Enable the plugin in Obsidian settings
-
-### Method 4: Pre-built Files Only
-
-1. Download the following files from the [latest release](https://github.com/hcg1023/obsidian-infographic/releases/latest):
-   - `main.js`
-   - `manifest.json`
-   - `styles.css`
-
-2. Create `obsidian-infographic` folder in `.obsidian/plugins/` directory (if it doesn't exist)
-
-3. Place the downloaded files in `.obsidian/plugins/obsidian-infographic/` directory
-
-4. Enable the plugin in Obsidian settings
 
 ## Usage
 
@@ -171,7 +172,7 @@ npm run lint
 ### Project Structure
 
 ```
-obsidian-infographic/
+obsidian-infographic-plus/
 ├── src/
 │   ├── main.ts       # Main plugin code
 │   └── settings.ts   # Plugin settings

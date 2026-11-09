@@ -1,4 +1,4 @@
-# obsidian-infographic
+# obsidian-infographic-plus
 
 > 使用 [@antv/infographic](https://github.com/antvis/Infographic) 渲染信息图表的 Obsidian 插件
 
@@ -6,26 +6,47 @@
 
 ## 安装
 
-> **注意**: 该插件目前尚未被 Obsidian 官方插件商店收录，无法直接从插件商店安装。请使用以下方式之一手动安装：
+### 方式一：从官方插件商店安装（推荐）
 
-### 方式一：通过 Obsidian BRAT 插件安装（推荐）
+1. 打开 Obsidian **设置 → 第三方插件**（Community plugins）。
+2. 点击 **浏览**（Browse），搜索 **"AntV Infographic"**。
+3. 点击 **安装**，然后 **启用**。
+
+> 如果暂时搜不到，说明可能仍在审核中，可先用下面的方式安装。
+
+### 方式二：仅使用预编译文件
+
+1. 从[最新版本发布页面](https://github.com/hcg1023/obsidian-infographic-plus/releases/latest)下载以下文件：
+   - `main.js`
+   - `manifest.json`
+   - `styles.css`
+
+2. 在 `.obsidian/plugins/` 目录下创建 `antv-infographic-plus` 文件夹（如果不存在）
+
+3. 将下载的文件放到 `.obsidian/plugins/antv-infographic-plus/` 目录下
+
+4. 在 Obsidian 设置中启用该插件
+
+### 方式三：通过 Obsidian BRAT 插件安装
+
+适合追踪尚未进入商店的测试版：
 
 1. 确保已安装 [BRAT 插件](https://github.com/TfTHacker/obsidian42-brat)
 2. 在 BRAT 设置中点击 "Add a beta plugin" 按钮，添加本插件的 GitHub 仓库 URL：
    ```
-   https://github.com/hcg1023/obsidian-infographic
+   https://github.com/hcg1023/obsidian-infographic-plus
    ```
 3. 版本选择
    - 选择 "Latest version" ，或者根据需要安装指定版本
 4. 点击 Add Plugin 按钮 BRAT 会自动下载并安装最新版本的插件
 
-### 方式二: 从源码构建
+### 方式四: 从源码构建
 
 1. 将项目克隆到 Obsidian 插件目录：
    ```bash
    cd ~/.obsidian/plugins
-   git clone https://github.com/hcg1023/obsidian-infographic.git
-   cd obsidian-infographic
+   git clone https://github.com/hcg1023/obsidian-infographic-plus.git
+   cd obsidian-infographic-plus
    ```
 
 2. 安装依赖并构建：
@@ -35,26 +56,6 @@
    ```
 
 3. 在 Obsidian 设置中启用该插件
-
-### 方式三: 下载源码 + 预编译文件
-
-1. 下载项目源码到 `.obsidian/plugins` 目录下
-2. 从[最新版本发布页面](https://github.com/hcg1023/obsidian-infographic/releases/latest)下载 `main.js` 文件
-3. 将 `main.js` 放到 `.obsidian/plugins/obsidian-infographic/` 目录下
-4. 在 Obsidian 设置中启用该插件
-
-### 方式四: 仅使用预编译文件
-
-1. 从[最新版本发布页面](https://github.com/hcg1023/obsidian-infographic/releases/latest)下载以下文件：
-   - `main.js`
-   - `manifest.json`
-   - `styles.css`
-
-2. 在 `.obsidian/plugins/` 目录下创建 `obsidian-infographic` 文件夹（如果不存在）
-
-3. 将下载的文件放到 `.obsidian/plugins/obsidian-infographic/` 目录下
-
-4. 在 Obsidian 设置中启用该插件
 
 ## 使用方法
 
@@ -171,7 +172,7 @@ npm run lint
 ### 项目结构
 
 ```
-obsidian-infographic/
+obsidian-infographic-plus/
 ├── src/
 │   ├── main.ts       # 主要插件代码
 │   └── settings.ts   # 插件设置
