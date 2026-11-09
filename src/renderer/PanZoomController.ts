@@ -100,7 +100,7 @@ export class PanZoomController {
 
 		options.viewportEl.addEventListener("wheel", this.onWheel, { passive: false });
 		options.viewportEl.addEventListener("pointerdown", this.onPointerDown);
-		options.viewportEl.addEventListener("dblclick", this.onDblClick);
+		options.contentEl.addEventListener("dblclick", this.onDblClick);
 		this.options.viewportEl.style.touchAction = (this.isZoomed() || this.options.wheelMode === "always") ? "none" : "pan-y";
 	}
 
@@ -152,7 +152,7 @@ export class PanZoomController {
 		const vp = this.options.viewportEl;
 		vp.removeEventListener("wheel", this.onWheel);
 		vp.removeEventListener("pointerdown", this.onPointerDown);
-		vp.removeEventListener("dblclick", this.onDblClick);
+		this.options.contentEl.removeEventListener("dblclick", this.onDblClick);
 		this.options.contentEl.setCssProps({ transform: "" });
 		this.options.viewportEl.setCssProps({ "touch-action": "" });
 		this.options.viewportEl.classList.remove("infographic-panning");

@@ -110,7 +110,7 @@ export class FullscreenModal extends Modal {
 		btn("zoom-out", "Zoom out", () => this.controller?.zoomBy(1 / 1.25));
 		this.zoomLabel = toolbar.createSpan({ cls: "infographic-zoom-label", text: "100%" });
 		btn("zoom-in", "Zoom in", () => this.controller?.zoomBy(1.25));
-		btn("scan", "Fit to screen", () => this.controller?.reset());
+		btn("move-horizontal", "Fit to screen", () => this.controller?.reset());
 		toolbar.createDiv({ cls: "infographic-toolbar-separator" });
 		const exportBtn = btn("download", "Export as PNG or SVG", () => {
 			if (this.payload.sourceInstance) {

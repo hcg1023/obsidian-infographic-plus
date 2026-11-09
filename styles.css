@@ -33,11 +33,16 @@
 
 /* 缩放百分比标签 */
 .infographic-zoom-label {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
 	min-width: 3.2em;
-	text-align: center;
-	font-size: var(--font-ui-smaller);
+	padding: 4px 6px;
+	background: var(--background-modifier-hover);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
 	color: var(--text-muted);
-	align-self: center;
+	font-size: 12px;
 	user-select: none;
 }
 
@@ -161,21 +166,18 @@
 	}
 }
 
-/* hover 工具栏 */
+/* hover 工具栏（右下角，上游风格独立 chip） */
 .infographic-toolbar {
 	position: absolute;
-	top: 6px;
-	right: 6px;
+	bottom: 4px;
+	right: 4px;
+	z-index: 12;
 	display: flex;
+	flex-direction: row;
 	align-items: center;
-	gap: 2px;
-	padding: 2px 4px;
-	border-radius: var(--radius-s);
-	background: var(--background-secondary);
-	border: 1px solid var(--background-modifier-border);
+	gap: 4px;
 	opacity: 0;
-	transition: opacity 0.15s ease;
-	z-index: 10;
+	transition: opacity 0.2s ease;
 	user-select: none;
 }
 
@@ -188,25 +190,23 @@
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	width: 26px;
-	height: 26px;
-	padding: 0;
-	margin: 0;
-	border: none;
-	border-radius: var(--radius-s);
-	background: transparent;
-	color: var(--text-muted);
+	padding: 4px 6px;
 	cursor: pointer;
+	background: var(--background-modifier-hover);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	color: var(--text-muted);
 }
 
 .infographic-toolbar-btn:hover {
-	background: var(--background-modifier-hover);
+	background: var(--background-modifier-active-hover);
 	color: var(--text-normal);
 }
 
 .infographic-toolbar-btn svg {
-	width: 15px;
-	height: 15px;
+	display: block;
+	width: 14px;
+	height: 14px;
 }
 
 .infographic-toolbar-separator {
@@ -218,6 +218,7 @@
 
 .infographic-center-btn-active {
 	color: var(--interactive-accent);
+	border-color: var(--interactive-accent);
 }
 
 .infographic-center-btn-active:hover {

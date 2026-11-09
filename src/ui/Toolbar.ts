@@ -28,7 +28,9 @@ function toolbarButton(toolbar: HTMLElement, icon: string, ariaLabel: string, on
 
 export function createToolbar(parent: HTMLElement, handlers: ToolbarHandlers): ToolbarControls {
 	const toolbar = parent.createDiv({ cls: "infographic-toolbar" });
-
+	toolbar.addEventListener("pointerdown", (event) => event.stopPropagation());
+	toolbar.addEventListener("mousedown", (event) => event.preventDefault());
+	toolbar.addEventListener("click", (event) => event.stopPropagation());
 	const centerBtn = toolbarButton(toolbar, "align-center", "Toggle center alignment", () => {
 		handlers.onToggleCenter();
 		const centered = handlers.isCentered();
@@ -41,13 +43,12 @@ export function createToolbar(parent: HTMLElement, handlers: ToolbarHandlers): T
 	toolbarButton(toolbar, "copy", "Copy source to clipboard", () => handlers.onCopySource());
 	toolbarButton(toolbar, "image", "Copy image to clipboard", () => handlers.onCopyImage());
 	toolbarButton(toolbar, "download", "Export as PNG or SVG", () => handlers.onExport());
-		toolbar.createDiv({ cls: "infographic-toolbar-separator" });
 
 	toolbarButton(toolbar, "zoom-out", "Zoom out", () => handlers.onZoomOut());
 	const zoomLabel = toolbar.createSpan({ cls: "infographic-zoom-label", text: "100%" });
 	toolbarButton(toolbar, "zoom-in", "Zoom in", () => handlers.onZoomIn());
-	toolbarButton(toolbar, "scan", "Fit to width", () => handlers.onFit());
-	toolbarButton(toolbar, "maximize", "Open fullscreen viewer", () => handlers.onFullscreen());
+	toolbarButton(toolbar, "move-horizontal", "Fit to width", () => handlers.onFit());
+	toolbarButton(toolbar, "maximize-2", "Open fullscreen viewer", () => handlers.onFullscreen());
 
 	return {
 		setZoomPercent: (percent: number) => zoomLabel.setText(`${Math.round(percent)}%`),
