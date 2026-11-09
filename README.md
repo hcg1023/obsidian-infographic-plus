@@ -106,6 +106,36 @@ theme light
 ```
 ````
 
+### Fence Parameters
+
+The opening fence line accepts optional parameters:
+
+````markdown
+```infographic width=600 align=center
+```
+````
+
+- `width=N` — cap the rendering width at `N` pixels (minimum 200). When absent, the block is responsive and fills the available note width.
+- `align=center` — center the block horizontally (default is left-aligned).
+
+Both parameters are also editable interactively: drag the resize handles on the sides of a block to change its width, and use the toolbar center-align button. The change is persisted back into the fence line of your note.
+
+### Zoom & Pan
+
+The rendered infographic is interactive:
+
+| Interaction | Behavior |
+|---|---|
+| Mouse wheel (fit state) | Scrolls the note as usual — the block stays out of the way |
+| `Ctrl`/`Cmd` + wheel | Zoom in / out at any time |
+| Wheel after zooming in | Keeps zooming (wheel is captured by the block) |
+| Drag while zoomed | Pan the diagram |
+| Double-click | Reset to fit-width state |
+| Toolbar `+` / `−` / fit buttons | Zoom in, zoom out, or reset |
+| Fullscreen viewer | Wheel always zooms; drag pans; export the full image or copy the source |
+
+Open the fullscreen viewer via the toolbar maximize button. The `infographic: Insert template from clipboard` command inserts a ready-made template into the current note.
+
 ## Export
 
 Right-click on the rendered infographic to access the following options:
@@ -158,15 +188,23 @@ For more information on infographic syntax and features, see the [Infographic do
 
 ## Features
 
-- Render infographic diagrams in Obsidian using `infographic` code blocks
-- Support for various diagram types (mind maps, timelines, flowcharts, etc.)
-- Export to PNG or SVG formats
-- Copy to clipboard functionality
-- Error handling with friendly error messages
+- Dual syntax: JSON specs and the concise Infographic DSL both work in `infographic` code blocks
+- Responsive width — blocks fill the note width, or cap them with the `width=N` fence parameter
+- `align=center` fence parameter (and a toolbar toggle) for horizontal centering
+- Hover toolbar: copy source, copy image, export PNG/SVG, center-align, zoom controls
+- In-note zoom & pan: Ctrl/Cmd+wheel to zoom, zoom buttons, drag to pan, double-click to reset
+- Fullscreen viewer with wheel zoom, drag pan and full-image export
+- `insert-template` command to scaffold a new infographic block
+- Error handling with friendly error placeholder cards
+- Requires Obsidian 1.13+
 
 ## License
 
 MIT License
+
+## Acknowledgments
+
+This plugin incorporates code ported and modified from [shuuul/obsidian-infographic](https://github.com/shuuul/obsidian-infographic) (v0.2.0, Apache-2.0) — the dual-syntax parser, the MarkdownRenderChild renderer with resize handling, fence parameter parsing/persistence, and the export/source modals. Ported files carry an Apache-2.0 header notice; see `LICENSE-APACHE-2.0`. Changes: removed the PDF print-snapshot pipeline, reworked toolbar/zoom integration, added PanZoomController and the fullscreen viewer. The remainder of this plugin is MIT licensed.
 
 ## Credits
 

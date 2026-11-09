@@ -106,6 +106,36 @@ theme light
 ```
 ````
 
+### Fence 参数
+
+代码块首行 fence 支持可选参数：
+
+````markdown
+```infographic width=600 align=center
+```
+````
+
+- `width=N` —— 将渲染宽度限制为 `N` 像素（最小 200）。缺省时块为响应式，自动填满笔记可用宽度。
+- `align=center` —— 块水平居中（缺省左对齐）。
+
+这两个参数也可以交互式修改：拖动块两侧的调节手柄改变宽度，或使用工具栏的居中按钮。修改结果会持久化写回笔记中的 fence 行。
+
+### 缩放与平移
+
+渲染后的信息图表支持交互：
+
+| 交互 | 行为 |
+|---|---|
+| 滚轮（适宽状态） | 正常滚动笔记，图表块不拦截 |
+| `Ctrl`/`Cmd` + 滚轮 | 随时缩放 |
+| 放大后滚轮 | 持续缩放（滚轮被图表块接管） |
+| 放大后拖拽 | 平移图表 |
+| 双击 | 复位到适宽状态 |
+| 工具栏 `+` / `−` / 适宽按钮 | 放大、缩小、复位 |
+| 全屏查看器 | 滚轮恒为缩放；拖拽平移；支持导出完整图像或复制源码 |
+
+通过工具栏的最大化按钮打开全屏查看器。`infographic: 从剪贴板插入模板` 命令可在当前笔记中插入现成模板。
+
 ## 导出功能
 
 在渲染的信息图表上点击右键可以访问以下选项：
@@ -158,17 +188,25 @@ obsidian-infographic/
 
 ## 特性
 
-- 使用 `infographic` 代码块在 Obsidian 中渲染信息图表
-- 支持多种图表类型（思维导图、时间线、流程图等）
-- 导出为 PNG 或 SVG 格式
-- 复制到剪贴板功能
-- 友好的错误处理和错误提示
+- 双语法：`infographic` 代码块同时支持 JSON 配置与简洁的 Infographic DSL
+- 响应式宽度——自动填满笔记宽度，也可用 `width=N` fence 参数限定
+- `align=center` fence 参数（及工具栏开关）实现水平居中
+- 悬停工具栏：复制源码、复制图片、导出 PNG/SVG、居中、缩放控件
+- 笔记内缩放与平移：Ctrl/Cmd+滚轮缩放、缩放按钮、拖拽平移、双击复位
+- 全屏查看器：滚轮缩放、拖拽平移、完整图像导出
+- `insert-template` 命令快速插入信息图表模板
+- 友好的错误占位卡提示
+- 需要 Obsidian 1.13+
 
 ## 许可证
 
 MIT License
 
-## 致谢
+## 致谢与许可说明
+
+本插件包含移植并修改自 [shuuul/obsidian-infographic](https://github.com/shuuul/obsidian-infographic)（v0.2.0，Apache-2.0）的代码——包括双语法解析器、带尺寸自适应的 MarkdownRenderChild 渲染器、fence 参数解析与持久化，以及导出/源码弹窗。移植文件均带有 Apache-2.0 头部声明，详见 `LICENSE-APACHE-2.0`。改动内容：移除了 PDF 打印快照管线，重做了工具栏/缩放集成，新增了 PanZoomController 与全屏查看器。本插件其余部分采用 MIT 许可证。
+
+## 相关项目
 
 - 使用 [@antv/infographic](https://github.com/antvis/Infographic) 构建
 - 基于 [Obsidian Sample Plugin](https://github.com/obsidianmd/obsidian-sample-plugin)
