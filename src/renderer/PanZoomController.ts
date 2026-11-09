@@ -181,7 +181,7 @@ export class PanZoomController {
 		this.options.contentEl.setCssProps({ "transform-origin": "0 0" });
 		this.options.contentEl.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
 		// fit 态把垂直滑动还给笔记（pan-y）；放大后才独占触摸
-		this.options.viewportEl.style.touchAction = this.isZoomed() ? "none" : "pan-y";
+		this.options.viewportEl.style.touchAction = (this.isZoomed() || this.options.wheelMode === "always") ? "none" : "pan-y";
 		this.options.onChange?.(this.state);
 	}
 

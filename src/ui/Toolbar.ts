@@ -1,3 +1,4 @@
+// Portions Copyright 2025 shuuul (https://github.com/shuuul/obsidian-infographic), Apache-2.0. Modified for antv-infographic.
 import { setIcon } from "obsidian";
 
 export interface ToolbarHandlers {
@@ -37,11 +38,9 @@ export function createToolbar(parent: HTMLElement, handlers: ToolbarHandlers): T
 	centerBtn.setAttribute("aria-pressed", String(handlers.isCentered()));
 	centerBtn.toggleClass("infographic-center-btn-active", handlers.isCentered());
 
-toolbarButton(toolbar, "copy", "Copy source to clipboard", () => handlers.onCopySource());
-toolbarButton(toolbar, "image", "Copy image to clipboard", () => handlers.onCopyImage());
-toolbarButton(toolbar, "download", "Export as PNG or SVG", () => handlers.onExport());
-
-	toolbar.createDiv({ cls: "infographic-toolbar-separator" });
+	toolbarButton(toolbar, "copy", "Copy source to clipboard", () => handlers.onCopySource());
+	toolbarButton(toolbar, "image", "Copy image to clipboard", () => handlers.onCopyImage());
+	toolbarButton(toolbar, "download", "Export as PNG or SVG", () => handlers.onExport());
 
 	toolbarButton(toolbar, "zoom-out", "Zoom out", () => handlers.onZoomOut());
 	const zoomLabel = toolbar.createSpan({ cls: "infographic-zoom-label", text: "100%" });

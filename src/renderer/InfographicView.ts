@@ -157,7 +157,7 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 
 	private render(): void {
 		const theme = this.getTheme();
-		const containerWidth = this.containerEl.parentElement?.clientWidth ?? 800;
+		const containerWidth = this.containerEl.clientWidth || 800;
 		const width = this.options.explicitWidth ?? containerWidth;
 		const height = width / DEFAULT_ASPECT_RATIO;
 
@@ -225,6 +225,7 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 	}
 
 	private renderError(message: string): void {
+		this.panZoom?.reset();
 		this.destroyInfographic();
 		this.containerEl.empty();
 		createErrorPlaceholder(this.containerEl, { message: `Failed to render infographic: ${message}` });
@@ -285,7 +286,8 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 					const raw = side === "left" ? startWidth - dx : startWidth + dx;
 					latestWidth = Math.max(MIN_DRAG_WIDTH, Math.min(maxWidth, Math.round(raw)));
 					if (frame === null) {
-						frame = window.requestAnimationFrame(apply);
+						const win = wrapper.ownerDocument.defaultView;
+						frame = win ? win.requestAnimationFrame(apply) : (apply(), null);
 					}
 				};
 				const onEnd = () => {
@@ -293,7 +295,7 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 					handle.removeEventListener("pointerup", onEnd);
 					handle.removeEventListener("pointercancel", onEnd);
 					if (frame !== null) {
-						window.cancelAnimationFrame(frame);
+						wrapper.ownerDocument.defaultView?.cancelAnimationFrame(frame);
 						frame = null;
 					}
 					wrapper.removeClass("infographic-resizing");
@@ -314,7 +316,6 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 
 	private applyWrapperWidth(wrapper: HTMLElement, width: number): void {
 		wrapper.style.width = `${width}px`;
-		wrapper.addClass("infographic-has-width");
 	}
 
 	private updateAspectRatioFromSVG(): void {
@@ -345,7 +346,7 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 	private resizeToFit(): void {
 		if (!this.infographic) return;
 		
-		const containerWidth = this.containerEl.parentElement?.clientWidth ?? 800;
+		const containerWidth = this.containerEl.clientWidth || 800;
 		const width = containerWidth;
 		const height = width / this.aspectRatio;
 		this.infographic.update({ width, height });

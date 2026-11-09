@@ -40,7 +40,7 @@ export class FullscreenModal extends Modal {
 
 		let renderFailed = false;
 		try {
-			const width = Math.max(320, viewport.clientWidth - 64 || 800);
+			const width = Math.max(320, viewport.clientWidth > 0 ? viewport.clientWidth - 64 : 800);
 			// 先按可用宽度渲染，再依 SVG viewBox 修正为“适应屏幕”（宽高都留 64px 边距）
 			// error 订阅经 onInit 前移到 render() 之前，防同步 emit 丢事件（task-6-report）
 			this.instance = renderInfographicInto(
@@ -57,6 +57,8 @@ export class FullscreenModal extends Modal {
 						renderFailed = true;
 						const message = e instanceof Error ? e.message : String(e);
 						console.error("[Infographic Plugin] Fullscreen render error:", message);
+						// render() 返回后异步 emit 时 loading 可能已被移除——重新挂回保证错误可见
+						if (!loading.isConnected) viewport.appendChild(loading);
 						loading.addClass("infographic-error-message");
 						loading.setText(`Failed to render infographic: ${message}`);
 					}),

@@ -64,7 +64,9 @@ export default class InfographicPlugin extends Plugin {
 		const result = parseInfographicSpec(source);
 		if (!result.success) {
 			console.error("[Infographic Plugin] Parse error:", result.error, { source: source.substring(0, 200) });
-			showParseError(result.error);
+			if (this.settings.errorBehavior !== "hide") {
+				showParseError(result.error);
+			}
 			this.handleError(el, result.error, source);
 			return;
 		}
@@ -77,7 +79,6 @@ export default class InfographicPlugin extends Plugin {
 		if (fenceWidth !== null) {
 			const available = el.clientWidth || fenceWidth;
 			container.style.width = `${Math.min(fenceWidth, available)}px`;
-			container.addClass("infographic-has-width");
 		}
 		const fenceAlign = fence ? getFenceAlign(fence) : null;
 		let centered = fenceAlign === "center";

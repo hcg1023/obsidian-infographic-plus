@@ -52,8 +52,8 @@
 	z-index: 5;
 }
 
-.infographic-resize-left { left: -6px; }
-.infographic-resize-right { right: -6px; }
+.infographic-resize-left { left: 0; }
+.infographic-resize-right { right: 0; }
 
 .infographic-wrapper:hover .infographic-resize-handle,
 .infographic-wrapper.infographic-resizing .infographic-resize-handle {
@@ -280,7 +280,6 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	touch-action: none;
 }
 
 .infographic-fullscreen-stage {
