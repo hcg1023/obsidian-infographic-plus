@@ -1,3 +1,4 @@
+// Portions Copyright 2025 shuuul (https://github.com/shuuul/obsidian-infographic), Apache-2.0. Modified for antv-infographic.
 // Fence parameter helpers ported from https://github.com/shuuul/obsidian-infographic (src/main.ts)
 // Copyright 2025 shuuul
 //
@@ -69,7 +70,7 @@ export function parseWidthParam(fence: string): number | null {
  * fence line number only when exactly one match exists, so ambiguous blocks
  * are never edited.
  */
-export function findUniqueSectionStart(editor: Editor, section: string[]): number | null {
+function findUniqueSectionStart(editor: Editor, section: string[]): number | null {
 	const first = section[0];
 	if (first === undefined) return null;
 	const last = section.length - 1;
@@ -98,7 +99,7 @@ export function findUniqueSectionStart(editor: Editor, section: string[]): numbe
  * exactly one match exists. Used as the live-preview fallback where
  * ctx.getSectionInfo is unavailable.
  */
-export function findUniqueBlockFence(editor: Editor, source: string): {line: number, fence: string} | null {
+function findUniqueBlockFence(editor: Editor, source: string): {line: number, fence: string} | null {
 	const contentLines = source.split("\n");
 	const last = contentLines.length - 1;
 	let found: {line: number, fence: string} | null = null;

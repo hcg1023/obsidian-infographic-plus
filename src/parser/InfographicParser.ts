@@ -1,3 +1,4 @@
+// Portions Copyright 2025 shuuul (https://github.com/shuuul/obsidian-infographic), Apache-2.0. Modified for antv-infographic.
 // Ported verbatim from https://github.com/shuuul/obsidian-infographic (src/parser/InfographicParser.ts)
 // Copyright 2025 shuuul
 //
