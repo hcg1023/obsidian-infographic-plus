@@ -254,3 +254,35 @@
 	justify-content: flex-end;
 	margin-top: 1em;
 }
+
+/* 全屏查看器 */
+.infographic-fullscreen {
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+}
+
+.infographic-fullscreen-toolbar {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	padding: 6px 10px;
+	border-bottom: 1px solid var(--background-modifier-border);
+	background: var(--background-secondary);
+	flex: none;
+}
+
+.infographic-fullscreen-viewport {
+	position: relative;
+	overflow: hidden;
+	flex: 1 1 auto;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	touch-action: none;
+}
+
+.infographic-fullscreen-stage {
+	transform-origin: 0 0;
+}

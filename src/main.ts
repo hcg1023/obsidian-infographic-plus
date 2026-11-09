@@ -4,7 +4,7 @@ import type { Infographic } from "@antv/infographic";
 import { DEFAULT_SETTINGS, ErrorBehavior, InfographicSettingTab, InfographicSettings, ThemeSetting } from "./settings";
 import { parseInfographicSpec, showParseError } from "./parser";
 import { getFenceAlign, parseWidthParam, persistBlockWidth, persistFenceUpdate, resolveFenceText, setFenceAlign } from "./fence";
-import { InfographicRenderChild } from "./renderer";
+import { FullscreenModal, InfographicRenderChild } from "./renderer";
 import { copyImageToClipboard, createErrorPlaceholder, createToolbar, ExportModal, SourceCodeModal } from "./ui";
 import type { ToolbarControls } from "./ui";
 
@@ -139,12 +139,13 @@ export default class InfographicPlugin extends Plugin {
 		});
 	}
 
-	// Task 9 将替换为真正的 FullscreenModal；本任务先保证按钮可用（临时提示）
 	private openFullscreen(content: string, isJson: boolean, instance: Infographic | null): void {
-		void content;
-		void isJson;
-		void instance;
-		new Notice("全屏查看器将在下一任务启用");
+		new FullscreenModal(this.app, {
+			content,
+			isJson,
+			theme: this.resolveTheme(),
+			sourceInstance: instance,
+		}).open();
 	}
 
 	/** 统一错误呈现（spec §3 错误占位卡）：解析失败与渲染失败共用，按 errorBehavior 走三模式 */
