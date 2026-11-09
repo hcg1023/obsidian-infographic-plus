@@ -28,7 +28,7 @@
 		"typescript-eslint": "8.35.1"
 	},
 	"dependencies": {
-		"@antv/infographic": "^0.2.7",
-		"obsidian": "latest"
+		"@antv/infographic": "0.2.20",
+		"obsidian": "^1.13.1"
 	}
 }
