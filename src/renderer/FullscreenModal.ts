@@ -38,6 +38,7 @@ export class FullscreenModal extends Modal {
 		const stage = viewport.createDiv({ cls: "infographic-fullscreen-stage" });
 		const loading = viewport.createDiv({ cls: "infographic-loading", text: "Loading infographic..." });
 
+		let renderFailed = false;
 		try {
 			const width = Math.max(320, viewport.clientWidth - 64 || 800);
 			// 先按可用宽度渲染，再依 SVG viewBox 修正为“适应屏幕”（宽高都留 64px 边距）
@@ -53,14 +54,17 @@ export class FullscreenModal extends Modal {
 				},
 				(instance) =>
 					instance.on("error", (e: unknown) => {
+						renderFailed = true;
 						const message = e instanceof Error ? e.message : String(e);
 						console.error("[Infographic Plugin] Fullscreen render error:", message);
 						loading.addClass("infographic-error-message");
 						loading.setText(`Failed to render infographic: ${message}`);
 					}),
 			);
-			this.fitToScreen(stage, viewport);
-			loading.remove();
+			if (!renderFailed) {
+				this.fitToScreen(stage, viewport);
+				loading.remove();
+			}
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
 			console.error("[Infographic Plugin] Fullscreen render error:", message);
