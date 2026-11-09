@@ -282,11 +282,12 @@
 	flex-direction: column;
 }
 
-/* 悬浮控件条：不再做实色顶栏，悬浮右上角 */
+/* 悬浮控件条：不再做实色顶栏，悬浮底部中间 */
 .infographic-fullscreen-toolbar {
 	position: absolute;
-	top: 12px;
-	right: 12px;
+	bottom: 16px;
+	left: 50%;
+	transform: translateX(-50%);
 	z-index: 20;
 	display: flex;
 	align-items: center;

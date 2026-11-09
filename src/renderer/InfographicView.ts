@@ -13,7 +13,8 @@ export interface RenderOptions {
 	isDarkMode: boolean;
 	/** Fence-level width override in px (```infographic width=N) */
 	explicitWidth?: number;
-	/** Called after a drag-resize commits, so the host can persist the width. */
+	/** Fence-level height override in px (```infographic height=N) */
+	explicitHeight?: number;
 	onWidthCommit?: (width: number) => void;
 	onRenderError?: (message: string) => void;
 	/** 缩放/平移状态变化回调（Task 7 工具栏用于刷新百分比标签）。 */
@@ -27,6 +28,7 @@ export interface RenderPayload {
 	width: number;
 	height: number;
 	explicitWidth?: number;
+	explicitHeight?: number;
 }
 
 interface ParsedInfographicConfig {
@@ -44,6 +46,7 @@ const MIN_DRAG_WIDTH = 200;
  * 创建并渲染一个 Infographic 实例（JSON 走 parse+strip，DSL 直接 render）。
  * onInit 在构造之后、render() 之前调用——用于提前订阅 "error" 事件，
  * 防止库在 render() 内同步 emit 时丢事件（Task 9 全屏 Modal 同样应经此订阅）。
+ * explicitHeight（```infographic height=N）优先于 JSON/DSL 自带高度。
  */
 export function renderInfographicInto(
 	container: HTMLElement,
@@ -56,7 +59,7 @@ export function renderInfographicInto(
 		const instance = new Infographic({
 			container,
 			width: payload.explicitWidth ?? jsonWidth ?? payload.width,
-			height: payload.explicitWidth ? payload.width / (payload.width / payload.height) : jsonHeight ?? payload.height,
+			height: payload.explicitHeight ?? (payload.explicitWidth ? payload.width / (payload.width / payload.height) : jsonHeight ?? payload.height),
 			theme: jsonTheme ?? payload.theme,
 			...rest,
 		});
@@ -64,7 +67,7 @@ export function renderInfographicInto(
 		instance.render();
 		return instance;
 	}
-	const instance = new Infographic({ container, width: payload.width, height: payload.height, theme: payload.theme });
+	const instance = new Infographic({ container, width: payload.width, height: payload.explicitHeight ?? payload.height, theme: payload.theme });
 	onInit?.(instance);
 	instance.render(payload.content);
 	return instance;
@@ -159,7 +162,7 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 		const theme = this.getTheme();
 		const containerWidth = this.containerEl.clientWidth || 800;
 		const width = this.options.explicitWidth ?? containerWidth;
-		const height = width / DEFAULT_ASPECT_RATIO;
+		const height = this.options.explicitHeight ?? width / DEFAULT_ASPECT_RATIO;
 
 		try {
 			this.infographic = renderInfographicInto(
@@ -171,6 +174,7 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 					width,
 					height,
 					explicitWidth: this.options.explicitWidth,
+					explicitHeight: this.options.explicitHeight,
 				},
 				(instance) => {
 					instance.on("error", (error: unknown) => {
@@ -204,7 +208,7 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 				for (const entry of entries) {
 					const { width } = entry.contentRect;
 					if (width > 0) {
-						const height = width / this.aspectRatio;
+						const height = this.options.explicitHeight ?? width / this.aspectRatio;
 						this.infographic.update({ width, height });
 						this.panZoom?.relayout({ resetIfZoomed: true });
 					}
@@ -348,7 +352,7 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 		
 		const containerWidth = this.containerEl.clientWidth || 800;
 		const width = containerWidth;
-		const height = width / this.aspectRatio;
+		const height = this.options.explicitHeight ?? width / this.aspectRatio;
 		this.infographic.update({ width, height });
 	}
 

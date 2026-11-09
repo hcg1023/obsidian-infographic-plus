@@ -29,6 +29,15 @@ export function setFenceWidth(fence: string, width: number): string {
 	return `${match[1]}${sep}infographic${rest ? ` ${rest}` : ""} width=${width}`;
 }
 
+/** Rewrite an ```infographic fence line so it carries `height=N`, preserving other params. */
+export function setFenceHeight(fence: string, height: number): string {
+	const match = fence.match(/^(`{3,})(\s*)infographic\b(.*)$/);
+	if (!match) return fence;
+	const sep = match[2] ?? " ";
+	const rest = (match[3] ?? "").replace(/\s+height\s*=\s*\d+/i, "").trim();
+	return `${match[1]}${sep}infographic${rest ? ` ${rest}` : ""} height=${height}`;
+}
+
 /**
  * Set or remove the `align=center|left` parameter on an ```infographic fence
  * line, preserving every other parameter. `null` removes the parameter so the
@@ -63,6 +72,14 @@ export function parseWidthParam(fence: string): number | null {
 	if (!match) return null;
 	const width = Number(match[1]);
 	return Number.isFinite(width) && width >= 200 ? width : null;
+}
+
+/** Parse the `height=N` fence parameter. Returns null when absent or too small. */
+export function parseHeightParam(fence: string): number | null {
+	const match = fence.match(/\bheight\s*=\s*(\d+)\b/i);
+	if (!match) return null;
+	const height = Number(match[1]);
+	return Number.isFinite(height) && height >= 100 ? height : null;
 }
 
 /**

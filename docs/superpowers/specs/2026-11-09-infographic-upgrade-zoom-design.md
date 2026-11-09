@@ -77,7 +77,7 @@
 | 层级 | 内容 | 依据 |
 |---|---|---|
 | P0 必须 | 库升级 0.2.20；MarkdownRenderChild 生命周期 + destroy；双语法解析；ResizeObserver 响应式；错误三模式（show-code / show-error / hide）+ SourceModal；minAppVersion→1.13.0；defaultTheme→auto 设置迁移 | 修内存泄漏/幽灵实例；JSON 支持补半用户面；声明式设置 API 前提 |
-| P1 进 MVP | hover 工具栏（替代右键菜单）；视图层缩放控件；全屏 Modal；fence `width=N`/`align=center` 读取 + 拖拽调宽回写；insert-template 命令；声明式设置（主题 auto/light/dark、错误行为） | 用户决策 + PM 席 |
+| P1 进 MVP | hover 工具栏（替代右键菜单）；视图层缩放控件；全屏 Modal；fence `width=N`/`height=N`（固定块高度 px，可与 width 独立使用）/`align=center` 读取 + 拖拽调宽回写；insert-template 命令；声明式设置（主题 auto/light/dark、错误行为） | 用户决策 + PM 席 |
 | P2 不进验收 | refresh 命令；centerByDefault 设置；主题切换实时重渲 | 有响应式后场景消失大半/锦上添花 |
 | 砍单 | PDF 导出管线（printSnapshot/snapshotFileCache/beforeprint）；editable 编辑器；autoRender 设置；缩放行为设置项；右键菜单；active-leaf-change 强刷 | 用户拍板 + PM 席补量化理由（PDF 管线为每次渲染+250ms 快照的常驻性能税） |
 

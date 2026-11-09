@@ -3,7 +3,7 @@ import { Editor, MarkdownPostProcessorContext, Notice, Plugin } from "obsidian";
 import type { Infographic } from "@antv/infographic";
 import { DEFAULT_SETTINGS, ErrorBehavior, InfographicSettingTab, InfographicSettings, ThemeSetting } from "./settings";
 import { parseInfographicSpec, showParseError } from "./parser";
-import { getFenceAlign, parseWidthParam, persistBlockWidth, persistFenceUpdate, resolveFenceText, setFenceAlign } from "./fence";
+import { getFenceAlign, parseHeightParam, parseWidthParam, persistBlockWidth, persistFenceUpdate, resolveFenceText, setFenceAlign } from "./fence";
 import { FullscreenModal, InfographicRenderChild } from "./renderer";
 import { copyImageToClipboard, createErrorPlaceholder, createToolbar, ExportModal, SourceCodeModal } from "./ui";
 import type { ToolbarControls } from "./ui";
@@ -73,13 +73,14 @@ export default class InfographicPlugin extends Plugin {
 
 		const container = el.createDiv({ cls: "infographic-wrapper" });
 
-		// fence 参数：width=N（渲染宽度上限）、align=center|left（水平对齐，缺省左对齐）
+		// fence 参数：width=N（渲染宽度上限）、height=N（固定块高度）、align=center|left（水平对齐，缺省左对齐）
 		const fence = resolveFenceText(this.app, ctx, el, source);
 		const fenceWidth = fence ? parseWidthParam(fence) : null;
 		if (fenceWidth !== null) {
 			const available = el.clientWidth || fenceWidth;
 			container.style.width = `${Math.min(fenceWidth, available)}px`;
 		}
+		const fenceHeight = fence ? parseHeightParam(fence) : null;
 		const fenceAlign = fence ? getFenceAlign(fence) : null;
 		let centered = fenceAlign === "center";
 		container.toggleClass("infographic-centered", centered);
@@ -93,6 +94,7 @@ export default class InfographicPlugin extends Plugin {
 			theme: this.settings.theme,
 			isDarkMode: this.isDarkMode(),
 			explicitWidth: fenceWidth ?? undefined,
+			explicitHeight: fenceHeight ?? undefined,
 			onWidthCommit: (width) => persistBlockWidth(this.app, ctx, el, source, width),
 			onRenderError: (message) => this.handleError(el, message, source),
 			onPanZoomChange: (state) => toolbarControls?.setZoomPercent(state.scale * 100),
