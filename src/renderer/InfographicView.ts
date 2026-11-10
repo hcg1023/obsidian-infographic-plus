@@ -1,7 +1,8 @@
 // Portions Copyright 2025 shuuul (https://github.com/shuuul/obsidian-infographic), Apache-2.0. Modified for antv-infographic-plus.
 // Ported from https://github.com/shuuul/obsidian-infographic (src/renderer/InfographicView.ts)
 import { MarkdownRenderChild } from "obsidian";
-import { Infographic, type InfographicOptions } from "@antv/infographic";
+import { Infographic } from "@antv/infographic";
+import type { InfographicOptions, StylizeConfig, ThemeConfig } from "@antv/infographic";
 import type { ThemeSetting } from "../settings";
 import { createErrorPlaceholder } from "../ui/ErrorPlaceholder";
 import { PanZoomController } from "./PanZoomController";
@@ -12,6 +13,8 @@ export interface RenderOptions {
 	isJson: boolean;
 	theme: ThemeSetting;
 	isDarkMode: boolean;
+	/** 插件设置的风格化（渲染级 themeConfig.stylize）；JSON 块内自带 themeConfig.stylize 时以块内为准 */
+	stylize?: StylizeConfig;
 	/** Fence-level width override in px (```infographic width=N) */
 	explicitWidth?: number;
 	/** Fence-level height override in px (```infographic height=N) */
@@ -33,18 +36,33 @@ export interface RenderPayload {
 	content: string;
 	isJson: boolean;
 	theme?: string;
+	stylize?: StylizeConfig;
 	width: number;
 	height: number;
 	explicitWidth?: number;
 	explicitHeight?: number;
 }
 
+
 interface ParsedInfographicConfig {
 	width?: number;
 	height?: number;
 	theme?: string;
+	themeConfig?: ThemeConfig;
 	template?: string;
 	data?: InfographicOptions["data"];
+}
+
+/**
+ * 块级 themeConfig 与插件设置 stylize 合并：其余字段块级优先，stylize 块级优先、缺省回落插件设置。
+ * 两侧都为空时返回 undefined（不传 themeConfig，主题自带 stylize 生效）。
+ */
+function mergeThemeConfig(jsonThemeConfig: ThemeConfig | undefined, pluginStylize: StylizeConfig | undefined): ThemeConfig | undefined {
+	if (!jsonThemeConfig && !pluginStylize) return undefined;
+	return {
+		...jsonThemeConfig,
+		...(pluginStylize || jsonThemeConfig?.stylize ? { stylize: jsonThemeConfig?.stylize ?? pluginStylize } : {}),
+	};
 }
 
 const DEFAULT_ASPECT_RATIO = 4 / 3;
@@ -83,22 +101,39 @@ export function renderInfographicInto(
 ): Infographic {
 	if (payload.isJson) {
 		const parsed = JSON.parse(payload.content) as ParsedInfographicConfig;
-		const { width: jsonWidth, height: jsonHeight, theme: jsonTheme, ...rest } = parsed;
+		const { width: jsonWidth, height: jsonHeight, theme: jsonTheme, themeConfig: jsonThemeConfig, ...rest } = parsed;
 		const instance = new Infographic({
 			container,
 			width: payload.explicitWidth ?? jsonWidth ?? payload.width,
 			height: payload.explicitHeight ?? (payload.explicitWidth ? payload.width / (payload.width / payload.height) : jsonHeight ?? payload.height),
 			theme: jsonTheme ?? payload.theme,
+			themeConfig: mergeThemeConfig(jsonThemeConfig, payload.stylize),
 			...rest,
 		});
 		onInit?.(instance);
 		instance.render();
 		return instance;
 	}
-	const instance = new Infographic({ container, width: payload.width, height: payload.explicitHeight ?? payload.height, theme: payload.theme });
+	const instance = new Infographic({
+		container,
+		width: payload.width,
+		height: payload.explicitHeight ?? payload.height,
+		theme: payload.theme,
+		themeConfig: payload.stylize ? { stylize: payload.stylize } : undefined,
+	});
 	onInit?.(instance);
 	instance.render(payload.content);
 	return instance;
+}
+
+/** 存活渲染子组件注册表：设置变更时就地刷新，绕过 Obsidian 代码块渲染缓存（previewMode.rerender 会返回缓存结果） */
+const liveRenderChildren = new Set<InfographicRenderChild>();
+
+/** 对全部存活块就地应用新主题/风格化（阅读模式/实时预览/嵌入/hover 弹层均覆盖） */
+export function applySettingsToAllInfographics(theme: string | undefined, stylize: StylizeConfig | undefined): void {
+	for (const child of [...liveRenderChildren]) {
+		if (child.containerEl.isConnected) child.applySettings(theme, stylize);
+	}
 }
 
 export class InfographicRenderChild extends MarkdownRenderChild {
@@ -111,6 +146,10 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 	private isResizing = false;
 	private contentEl: HTMLElement | null = null;
 	private panZoom: PanZoomController | null = null;
+	/** 块级 JSON 自带主题（优先于插件设置，就地刷新时跳过） */
+	private blockOwnTheme: string | undefined;
+	/** 块级 JSON 自带主题配置（其 stylize 优先于插件设置） */
+	private blockOwnThemeConfig: ThemeConfig | undefined;
 
 	constructor(containerEl: HTMLElement, options: RenderOptions) {
 		super(containerEl);
@@ -141,6 +180,11 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 		this.panZoom?.zoomBy(1 / 1.25);
 	}
 
+	/** 仅复位缩放/平移到 100%；不动块宽、不触发 fence 写回（完整还原用 fitWidth） */
+	resetZoom(): void {
+		this.panZoom?.reset();
+	}
+
 	/** 适应宽度：重置缩放，并请求宿主清除 fence 宽高参数（本地恢复见 fitToContainer） */
 	fitWidth(): void {
 		this.panZoom?.reset();
@@ -168,6 +212,17 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 	ensureStarted(): void {
 		if (this.started) return;
 		this.started = true;
+		liveRenderChildren.add(this);
+		if (this.options.isJson) {
+			// 块级 JSON 自带 theme/themeConfig 优先于插件设置，就地刷新时跳过对应字段（与首渲合并语义一致）
+			try {
+				const parsed = JSON.parse(this.options.content) as { theme?: string; themeConfig?: ThemeConfig };
+				this.blockOwnTheme = parsed.theme;
+				this.blockOwnThemeConfig = parsed.themeConfig;
+			} catch {
+				// 解析失败走错误卡片，无需块级覆盖
+			}
+		}
 		this.showLoading();
 		this.render();
 		this.setupResizeObserver();
@@ -182,12 +237,30 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 		}
 	}
 
+	/** 就地刷新主题与风格化：块级自带的字段跳过，其余走 update()（不动宽高/缩放） */
+	applySettings(theme: string | undefined, stylize: StylizeConfig | undefined): void {
+		if (!this.infographic) return;
+		const update: Partial<InfographicOptions> = {};
+		if (!this.blockOwnTheme && theme) update.theme = theme;
+		// stylize 为空时传 null：清除此前就地应用过的风格化，库内 null 回落主题自带 stylize，
+		// 正好是「无（跟随主题）」语义（渐变/图案清除已浏览器实测）
+		update.themeConfig = this.blockOwnThemeConfig
+			? mergeThemeConfig(this.blockOwnThemeConfig, stylize)
+			: { stylize: stylize ?? null };
+		try {
+			this.infographic.update(update);
+		} catch {
+			// 实例已销毁等异常：静默跳过，块重建后自然应用新设置
+		}
+	}
+
 	private getTheme(): string | undefined {
 		if (this.options.theme === "auto") {
 			return this.options.isDarkMode ? "dark" : "light";
 		}
 		return this.options.theme;
 	}
+
 
 	private showLoading(): void {
 		this.containerEl.empty();
@@ -216,9 +289,10 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 				{
 					content: this.options.content,
 					isJson: this.options.isJson,
-					theme,
-					width,
-					height,
+				theme,
+				stylize: this.options.stylize,
+				width,
+				height,
 					explicitWidth: this.options.explicitWidth,
 					explicitHeight: this.options.explicitHeight,
 				},
@@ -453,6 +527,7 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 	}
 
 	private cleanup(): void {
+		liveRenderChildren.delete(this);
 		this.panZoom?.destroy();
 		this.panZoom = null;
 		if (this.resizeObserver) {

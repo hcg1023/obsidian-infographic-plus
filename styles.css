@@ -4,6 +4,8 @@
 .infographic-wrapper {
 	position: relative;
 	max-width: 100%;
+	/* 容器查询锚点：按块自身宽度（而非窗口）折叠工具栏，嵌窄栏/小 fence 同样生效 */
+	container-type: inline-size;
 }
 
 .infographic-wrapper.infographic-centered {
@@ -36,17 +38,9 @@
 	cursor: grabbing;
 }
 
-/* 缩放百分比标签 */
+/* 缩放百分比标签：现与按钮同元素共存（.infographic-toolbar-btn 提供底色/边框/各状态），此处只留差异项 */
 .infographic-zoom-label {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
 	min-width: 3.2em;
-	padding: 4px 6px;
-	background: var(--background-modifier-hover);
-	border: 1px solid var(--background-modifier-border);
-	border-radius: var(--radius-s);
-	color: var(--text-muted);
 	font-size: 12px;
 	user-select: none;
 }
@@ -189,7 +183,7 @@
 	}
 }
 
-/* hover 工具栏（右下角，上游风格独立 chip） */
+/* hover 工具栏（右下角，独立 chip；按块宽分级折叠见下方容器查询） */
 .infographic-toolbar {
 	position: absolute;
 	bottom: 4px;
@@ -202,11 +196,39 @@
 	opacity: 0;
 	transition: opacity 0.2s ease;
 	user-select: none;
+	/* 极窄兜底：放不下就换行，绝不溢出块外 */
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	max-width: 100%;
 }
 
 .infographic-wrapper:hover .infographic-toolbar,
 .infographic-toolbar:focus-within {
 	opacity: 1;
+}
+
+/* 小内容区分级折叠（容器查询按块宽生效）：
+   宽（≥340px）全量；中（200–339px）收起 low 档（居中/复制源码/复制图片/导出/适应宽度），
+   显示「更多」按钮开同一份菜单；窄（<200px）再收起 mid 档（缩放组），仅剩「更多」+全屏。 */
+/* 「更多」默认隐藏；带 .infographic-toolbar 前缀压过 .infographic-toolbar-btn 基础规则，
+   下方容器查询显示规则同 specificity 且更靠后，窄容器下取胜 */
+.infographic-toolbar .infographic-toolbar-more {
+	display: none;
+}
+
+@container (max-width: 339px) {
+	.infographic-toolbar .infographic-toolbar-low {
+		display: none;
+	}
+	.infographic-toolbar .infographic-toolbar-more {
+		display: inline-flex;
+	}
+}
+
+@container (max-width: 199px) {
+	.infographic-toolbar .infographic-toolbar-mid {
+		display: none;
+	}
 }
 
 .infographic-toolbar-btn {
@@ -215,15 +237,32 @@
 	justify-content: center;
 	padding: 4px 6px;
 	cursor: pointer;
-	background: var(--background-modifier-hover);
+	background: var(--interactive-normal);
 	border: 1px solid var(--background-modifier-border);
 	border-radius: var(--radius-s);
+	box-shadow: var(--shadow-s);
 	color: var(--text-muted);
 }
 
-.infographic-toolbar-btn:hover {
-	background: var(--background-modifier-active-hover);
+/* 全状态显式覆盖：原生 button 会被 Obsidian 全局样式和主题的 button:hover/:active/:focus
+   规则命中，缺哪个状态哪个状态就随主题漂移（此前 :active/:focus 未定义导致点击后透明）。
+   底色用实色交互 token（--interactive-*），不用 --background-modifier-hover 这类半透明
+   叠加色——主题未定义时整条 background 声明失效会回落为透明。 */
+.infographic-toolbar-btn:hover,
+.infographic-toolbar-btn:focus,
+.infographic-toolbar-btn:focus-visible {
+	background: var(--interactive-hover);
 	color: var(--text-normal);
+}
+
+.infographic-toolbar-btn:active {
+	background: var(--interactive-active);
+	color: var(--text-normal);
+}
+
+.infographic-toolbar-btn:disabled {
+	opacity: 0.5;
+	cursor: default;
 }
 
 .infographic-toolbar-btn svg {
@@ -231,7 +270,6 @@
 	width: 14px;
 	height: 14px;
 }
-
 .infographic-toolbar-separator {
 	width: 1px;
 	height: 16px;
@@ -315,7 +353,10 @@
 	display: flex;
 	align-items: center;
 	gap: 4px;
-	/* 无背景无边框，按钮自身是 chip（复用 .infographic-toolbar-btn 样式） */
+	/* 小窗兜底：换行回绕，不溢出屏幕；无背景无边框，按钮自身是 chip */
+	flex-wrap: wrap;
+	justify-content: center;
+	max-width: calc(100vw - 32px);
 }
 
 .infographic-fullscreen-viewport {

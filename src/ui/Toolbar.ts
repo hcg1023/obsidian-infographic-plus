@@ -1,5 +1,5 @@
 // Portions Copyright 2025 shuuul (https://github.com/shuuul/obsidian-infographic), Apache-2.0. Modified for antv-infographic-plus.
-import { setIcon } from "obsidian";
+import { Menu, setIcon } from "obsidian";
 import { i18n } from "../lang";
 
 export interface ToolbarHandlers {
@@ -10,6 +10,8 @@ export interface ToolbarHandlers {
 	onExport(): void;
 	onZoomIn(): void;
 	onZoomOut(): void;
+	/** 仅复位缩放/平移到 100%，不还原块宽、不改源码（区别于 onFit） */
+	onZoomReset(): void;
 	onFit(): void;
 	onFullscreen(): void;
 }
@@ -18,13 +20,39 @@ export interface ToolbarControls {
 	setZoomPercent(percent: number): void;
 }
 
-function toolbarButton(toolbar: HTMLElement, icon: string, ariaLabel: string, onClick: () => void): HTMLButtonElement {
-	const btn = toolbar.createEl("button", { cls: "infographic-toolbar-btn" });
+function toolbarButton(toolbar: HTMLElement, icon: string, ariaLabel: string, onClick: () => void, tier?: "low" | "mid"): HTMLButtonElement {
+	const btn = toolbar.createEl("button", {
+		cls: tier ? `infographic-toolbar-btn infographic-toolbar-${tier}` : "infographic-toolbar-btn",
+	});
 	btn.setAttribute("aria-label", ariaLabel);
 	btn.setAttribute("type", "button");
 	setIcon(btn, icon);
 	btn.addEventListener("click", onClick);
 	return btn;
+}
+
+/**
+ * 快捷菜单：块上右键与工具栏「更多」按钮共用，消费与工具栏同一份 handlers，保证两处入口逻辑一致。
+ * showZoomActions 与 createToolbar 的 showZoomControls 对应同一设置。
+ */
+export function openInfographicMenu(handlers: ToolbarHandlers, event: MouseEvent, options?: { showZoomActions?: boolean }): void {
+	const menu = new Menu();
+	menu.addItem((item) =>
+		item.setTitle(i18n.menuCenter).setIcon("align-center").setChecked(handlers.isCentered()).onClick(() => handlers.onToggleCenter()),
+	);
+	menu.addSeparator();
+	menu.addItem((item) => item.setTitle(i18n.menuCopySource).setIcon("copy").onClick(() => handlers.onCopySource()));
+	menu.addItem((item) => item.setTitle(i18n.menuCopyImage).setIcon("image").onClick(() => handlers.onCopyImage()));
+	menu.addItem((item) => item.setTitle(i18n.menuExport).setIcon("download").onClick(() => handlers.onExport()));
+	menu.addSeparator();
+	if (options?.showZoomActions !== false) {
+		menu.addItem((item) => item.setTitle(i18n.ariaZoomOut).setIcon("zoom-out").onClick(() => handlers.onZoomOut()));
+		menu.addItem((item) => item.setTitle(i18n.ariaZoomIn).setIcon("zoom-in").onClick(() => handlers.onZoomIn()));
+	}
+	menu.addItem((item) => item.setTitle(i18n.ariaFit).setIcon("move-horizontal").onClick(() => handlers.onFit()));
+	menu.addSeparator();
+	menu.addItem((item) => item.setTitle(i18n.menuFullscreen).setIcon("maximize-2").onClick(() => handlers.onFullscreen()));
+	menu.showAtMouseEvent(event);
 }
 
 export function createToolbar(parent: HTMLElement, handlers: ToolbarHandlers, options?: { showZoomControls?: boolean }): ToolbarControls {
@@ -37,21 +65,36 @@ export function createToolbar(parent: HTMLElement, handlers: ToolbarHandlers, op
 		const centered = handlers.isCentered();
 		centerBtn.setAttribute("aria-pressed", String(centered));
 		centerBtn.toggleClass("infographic-center-btn-active", centered);
-	});
+	}, "low");
 	centerBtn.setAttribute("aria-pressed", String(handlers.isCentered()));
 	centerBtn.toggleClass("infographic-center-btn-active", handlers.isCentered());
 
-	toolbarButton(toolbar, "copy", i18n.ariaCopySource, () => handlers.onCopySource());
-	toolbarButton(toolbar, "image", i18n.ariaCopyImage, () => handlers.onCopyImage());
-	toolbarButton(toolbar, "download", i18n.ariaExport, () => handlers.onExport());
+	toolbarButton(toolbar, "copy", i18n.ariaCopySource, () => handlers.onCopySource(), "low");
+	toolbarButton(toolbar, "image", i18n.ariaCopyImage, () => handlers.onCopyImage(), "low");
+	toolbarButton(toolbar, "download", i18n.ariaExport, () => handlers.onExport(), "low");
 
 	let zoomLabel: HTMLElement | null = null;
 	if (options?.showZoomControls !== false) {
-		toolbarButton(toolbar, "zoom-out", i18n.ariaZoomOut, () => handlers.onZoomOut());
-		zoomLabel = toolbar.createSpan({ cls: "infographic-zoom-label", text: "100%" });
-		toolbarButton(toolbar, "zoom-in", i18n.ariaZoomIn, () => handlers.onZoomIn());
+		toolbarButton(toolbar, "zoom-out", i18n.ariaZoomOut, () => handlers.onZoomOut(), "mid");
+		// 百分比标签即按钮：点击=仅缩放复位（标签复用按钮基类，键盘/焦点/各状态样式全部继承）
+		zoomLabel = toolbar.createEl("button", { cls: "infographic-toolbar-btn infographic-zoom-label infographic-toolbar-mid", text: "100%" });
+		zoomLabel.setAttribute("aria-label", i18n.ariaZoomReset);
+		zoomLabel.setAttribute("type", "button");
+		zoomLabel.addEventListener("click", () => handlers.onZoomReset());
+		toolbarButton(toolbar, "zoom-in", i18n.ariaZoomIn, () => handlers.onZoomIn(), "mid");
 	}
-	toolbarButton(toolbar, "move-horizontal", i18n.ariaFit, () => handlers.onFit());
+	toolbarButton(toolbar, "move-horizontal", i18n.ariaFit, () => handlers.onFit(), "low");
+
+	// 「更多」按钮：仅在容器查询判定窄屏折叠时显示，打开与右键相同的菜单
+	const moreBtn = toolbar.createEl("button", { cls: "infographic-toolbar-btn infographic-toolbar-more" });
+	moreBtn.setAttribute("aria-label", i18n.ariaMore);
+	moreBtn.setAttribute("aria-haspopup", "menu");
+	moreBtn.setAttribute("type", "button");
+	setIcon(moreBtn, "more-horizontal");
+	moreBtn.addEventListener("click", (event) => {
+		openInfographicMenu(handlers, event, { showZoomActions: options?.showZoomControls !== false });
+	});
+
 	toolbarButton(toolbar, "maximize-2", i18n.ariaFullscreen, () => handlers.onFullscreen());
 	return {
 		setZoomPercent: (percent: number) => zoomLabel?.setText(`${Math.round(percent)}%`),

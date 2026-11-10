@@ -134,15 +134,15 @@ The rendered infographic is interactive:
 | `Ctrl`/`Cmd` + wheel | Zoom in / out at any time |
 | Wheel after zooming in | Keeps zooming (wheel is captured by the block) |
 | Drag while zoomed | Pan the diagram |
-| Double-click | Reset to fit-width state |
-| Toolbar `+` / `−` / fit buttons | Zoom in, zoom out, or reset zoom; **Fit to width** also restores the block to the full note-column width by clearing the `width=N` / `height=N` parameters (session-only in reading mode) |
+| Double-click | Reset zoom to 100% (zoom only — block width unchanged) |
+| Toolbar `+` / `−` / fit buttons | Zoom in, zoom out, or reset zoom; click the zoom percentage to reset zoom to 100% only; **Fit to width** also restores the block to the full note-column width by clearing the `width=N` / `height=N` parameters (session-only in reading mode) |
 | Fullscreen viewer | Wheel always zooms; drag pans; export the full image or copy the source |
 
 Open the fullscreen viewer via the toolbar maximize button. The `infographic: Insert infographic template` command inserts a ready-made template into the current note.
 
 ## Export
 
-Hover over the rendered infographic (or tap it on mobile) to reveal the toolbar — since mobile has no right-click menu, the toolbar is the only export entry point:
+Hover over the rendered infographic (or tap it on mobile) to reveal the toolbar. Right-click (long-press on mobile) the block or the fullscreen viewer opens a context menu with the same actions, so everything stays reachable even when the toolbar is collapsed on narrow blocks:
 
 1. **Copy source** - Copy the infographic source code to the clipboard
 2. **Copy image** - Copy the infographic (PNG format) to clipboard for pasting into other applications
@@ -192,9 +192,11 @@ This plugin uses [@antv/infographic](https://github.com/antvis/Infographic) for 
 
 | Setting | Default | Description |
 |---|---|---|
+| Theme | Auto | Infographic color theme. **Auto** follows Obsidian light/dark; the other options are the built-in themes reported by `getThemes()` (light / dark / hand-drawn, and whatever future versions add) |
+| Stylize | None | Apply rough / pattern / gradient styling on top of the theme (`themeConfig.stylize`). Pattern is a dropdown of the library's built-ins; gradients pick two colors with native color pickers (multi-stop gradients via the block's JSON `themeConfig`). Blocks whose JSON carries its own `themeConfig.stylize` keep theirs |
 | Drag to resize | on | Show drag handles on block edges to adjust width and height |
 | In-note zoom | on | Ctrl/Cmd+wheel zoom, drag to pan, and zoom controls on the toolbar |
-| Hover toolbar | on | Show the toolbar with copy, export and zoom actions when hovering a block. Note: with this off there is no copy/export entry |
+| Hover toolbar | on | Show the toolbar with copy, export and zoom actions when hovering a block. The right-click menu remains available even with this off |
 | Center blocks by default | off | Center blocks horizontally unless overridden by the `align=` fence parameter |
 
 
@@ -204,6 +206,8 @@ This plugin uses [@antv/infographic](https://github.com/antvis/Infographic) for 
 - Responsive width — blocks fill the note width, or cap them with the `width=N` fence parameter
 - `align=center` fence parameter (and a toolbar toggle) for horizontal centering
 - Hover toolbar: copy source, copy image, export PNG/SVG, center-align, zoom controls
+- Right-click context menu on blocks and in the fullscreen viewer, sharing the same actions as the toolbar
+- Responsive toolbar: buttons collapse into a "more" menu on narrow blocks (container queries)
 - In-note zoom & pan: Ctrl/Cmd+wheel to zoom, zoom buttons, drag to pan, double-click to reset
 - Fullscreen viewer with wheel zoom, drag pan and full-image export
 - `insert-template` command to scaffold a new infographic block

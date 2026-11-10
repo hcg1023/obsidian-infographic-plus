@@ -1,5 +1,5 @@
-import { App, Modal, setIcon } from "obsidian";
-import type { Infographic } from "@antv/infographic";
+import { App, Menu, Modal, setIcon } from "obsidian";
+import type { Infographic, StylizeConfig } from "@antv/infographic";
 import { PanZoomController } from "./PanZoomController";
 import { renderInfographicInto } from "./InfographicView";
 import { ExportModal } from "../ui/ExportModal";
@@ -9,6 +9,8 @@ export interface FullscreenPayload {
 	content: string;
 	isJson: boolean;
 	theme?: string;
+	/** 插件设置的风格化（与笔记内渲染一致） */
+	stylize?: StylizeConfig;
 	/** 原笔记内实例：全屏内导出/复制恒为全图，不受视图缩放影响（spec §3） */
 	sourceInstance: Infographic | null;
 }
@@ -51,6 +53,7 @@ export class FullscreenModal extends Modal {
 					content: this.payload.content,
 					isJson: this.payload.isJson,
 					theme: this.payload.theme,
+					stylize: this.payload.stylize,
 					width,
 					height: width * 0.75,
 				},
@@ -84,6 +87,27 @@ export class FullscreenModal extends Modal {
 			onChange: (state) => this.zoomLabel?.setText(`${Math.round(state.scale * 100)}%`),
 		});
 
+		// 右键快捷菜单：与底部工具栏按钮调用同一批逻辑
+		contentEl.addEventListener("contextmenu", (event) => {
+			event.preventDefault();
+			const menu = new Menu();
+			menu.addItem((item) => item.setTitle(i18n.ariaZoomOut).setIcon("zoom-out").onClick(() => this.controller?.zoomBy(1 / 1.25)));
+			menu.addItem((item) => item.setTitle(i18n.ariaZoomIn).setIcon("zoom-in").onClick(() => this.controller?.zoomBy(1.25)));
+			menu.addItem((item) => item.setTitle(i18n.ariaFitScreen).setIcon("move-horizontal").onClick(() => this.controller?.reset()));
+			menu.addSeparator();
+			menu.addItem((item) => {
+				item.setTitle(i18n.menuExport)
+					.setIcon("download")
+					.onClick(() => {
+						if (this.payload.sourceInstance) new ExportModal(this.app, this.payload.sourceInstance).open();
+					});
+				item.setDisabled(!this.payload.sourceInstance);
+			});
+			menu.addSeparator();
+			menu.addItem((item) => item.setTitle(i18n.ariaClose).setIcon("x").onClick(() => this.close()));
+			menu.showAtMouseEvent(event);
+		});
+
 		const modalBg = this.containerEl.querySelector(".modal-bg");
 		modalBg?.addEventListener("click", () => this.close());
 	}
@@ -113,7 +137,10 @@ export class FullscreenModal extends Modal {
 			return b;
 		};
 		btn("zoom-out", i18n.ariaZoomOut, () => this.controller?.zoomBy(1 / 1.25));
-		this.zoomLabel = toolbar.createSpan({ cls: "infographic-zoom-label", text: "100%" });
+		this.zoomLabel = toolbar.createEl("button", { cls: "infographic-toolbar-btn infographic-zoom-label", text: "100%" });
+		this.zoomLabel.setAttribute("aria-label", i18n.ariaZoomReset);
+		this.zoomLabel.setAttribute("type", "button");
+		this.zoomLabel.addEventListener("click", () => this.controller?.reset());
 		btn("zoom-in", i18n.ariaZoomIn, () => this.controller?.zoomBy(1.25));
 		btn("move-horizontal", i18n.ariaFitScreen, () => this.controller?.reset());
 		toolbar.createDiv({ cls: "infographic-toolbar-separator" });

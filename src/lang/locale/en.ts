@@ -1,10 +1,11 @@
 export default {
 	// Settings
 	themeName: "Theme",
-	themeDesc: "Color theme for infographics",
+	themeDesc: "Color theme for infographics (built-in list provided by @antv/infographic)",
 	themeAuto: "Auto (follow Obsidian)",
 	themeLight: "Light",
 	themeDark: "Dark",
+	themeHandDrawn: "Hand-drawn",
 	errorBehaviorName: "Error behavior",
 	errorBehaviorDesc: "What to display when an infographic fails to render",
 	errorShowCode: "Show source code",
@@ -15,7 +16,7 @@ export default {
 	zoomName: "In-note zoom",
 	zoomDesc: "Ctrl/Cmd+wheel zoom, drag to pan, and zoom controls on the toolbar",
 	toolbarName: "Hover toolbar",
-	toolbarDesc: "Show the toolbar with copy, export and zoom actions when hovering a block",
+	toolbarDesc: "Show the toolbar with copy, export and zoom actions when hovering a block (a right-click menu is always available)",
 	centerName: "Center blocks by default",
 	centerDesc: "Center blocks horizontally unless overridden by the align= fence parameter",
 
@@ -31,13 +32,47 @@ export default {
 	ariaFitScreen: "Fit to screen",
 	ariaClose: "Close",
 
+	ariaMore: "More actions",
+	ariaZoomReset: "Reset zoom to 100%",
+
+	// Stylize
+	stylizeName: "Stylize",
+	stylizeDesc: "Apply a visual style (rough / pattern / gradient) on top of the theme; blocks with their own themeConfig in JSON keep theirs",
+	stylizeNone: "None (follow theme)",
+	stylizeRough: "Hand-drawn (rough)",
+	stylizePattern: "Pattern fill",
+	stylizeLinear: "Linear gradient",
+	stylizeRadial: "Radial gradient",
+	stylizeRoughnessName: "Roughness",
+	stylizeRoughnessDesc: "Higher values look more hand-drawn (rough.js roughness)",
+	stylizePatternName: "Pattern",
+	stylizePatternDesc: "Built-in patterns of @antv/infographic; for anything else configure themeConfig in the block's JSON",
+	stylizePatternDot: "Dots",
+	stylizePatternLine: "Lines",
+	stylizePatternSquare: "Squares",
+	stylizePatternHex: "Hexagons",
+	stylizePatternDiamond: "Diamonds",
+	stylizePatternMosaic: "Mosaic",
+	stylizeColorFromName: "Gradient start color",
+	stylizeColorFromDesc: "First gradient stop",
+	stylizeColorToName: "Gradient end color",
+	stylizeColorToDesc: "Second gradient stop; multi-stop gradients go in the block's JSON themeConfig",
+	stylizeAngleName: "Gradient angle",
+	stylizeAngleDesc: "Linear gradient angle in degrees (0 → right, 90 → down)",
+
+	// Context menu
+	menuCenter: "Center alignment",
+	menuCopySource: "Copy source",
+	menuCopyImage: "Copy image",
+	menuExport: "Export…",
+	menuFullscreen: "Fullscreen",
+
 	// Notices and popups
 	copySourceSuccess: "Copied source to clipboard",
 	copyFailed: "Copy failed",
 	copyImageSuccess: "Chart copied to clipboard",
 	copyImageFallback: "Copying images is not supported here; source copied instead. Use Export to save a PNG",
 	copyFailedWithReason: "Copy failed: ",
-	parseErrorNotice: "Infographic error: ",
 
 	loadingText: "Loading infographic…",
 	errorPrefix: "Error: ",

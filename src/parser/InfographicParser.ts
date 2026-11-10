@@ -14,8 +14,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import {Notice} from "obsidian";
-import { i18n } from "../lang";
 
 export type ParseResult = {
 	success: true;
@@ -60,6 +58,3 @@ export function parseInfographicSpec(source: string): ParseResult {
 	};
 }
 
-export function showParseError(error: string): void {
-	new Notice(i18n.parseErrorNotice + error, 5000);
-}

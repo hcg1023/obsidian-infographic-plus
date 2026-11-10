@@ -1,12 +1,12 @@
 // Portions Copyright 2025 shuuul (https://github.com/shuuul/obsidian-infographic), Apache-2.0. Modified for antv-infographic-plus.
-import { Editor, MarkdownPostProcessorContext, MarkdownView, Notice, Plugin } from "obsidian";
+import { Editor, MarkdownPostProcessorContext, Notice, Plugin } from "obsidian";
 import type { Infographic } from "@antv/infographic";
-import { DEFAULT_SETTINGS, ErrorBehavior, InfographicSettingTab, InfographicSettings, ThemeSetting } from "./settings";
-import { parseInfographicSpec, showParseError } from "./parser";
+import { buildStylizeConfig, DEFAULT_SETTINGS, ErrorBehavior, InfographicSettingTab, InfographicSettings, patternOptions, StylizeTypeSetting, ThemeSetting } from "./settings";
+import { parseInfographicSpec } from "./parser";
 import { clearFenceSize, getFenceAlign, parseHeightParam, parseWidthParam, persistBlockHeight, persistBlockWidth, persistFenceUpdate, resolveFenceText, setFenceAlign } from "./fence";
-import { FullscreenModal, getCachedBlockHeight, InfographicRenderChild } from "./renderer";
-import { copyImageToClipboard, createErrorPlaceholder, createToolbar, ExportModal, SourceCodeModal } from "./ui";
-import type { ToolbarControls } from "./ui";
+import { applySettingsToAllInfographics, FullscreenModal, getCachedBlockHeight, InfographicRenderChild } from "./renderer";
+import { copyImageToClipboard, createErrorPlaceholder, createToolbar, ExportModal, openInfographicMenu, SourceCodeModal } from "./ui";
+import type { ToolbarControls, ToolbarHandlers } from "./ui";
 import { i18n } from "./lang";
 
 const INFOGRAPHIC_TEMPLATE = `{
@@ -19,6 +19,7 @@ const INFOGRAPHIC_TEMPLATE = `{
     ]
   }
 }`;
+
 
 export default class InfographicPlugin extends Plugin {
 	settings: InfographicSettings;
@@ -73,9 +74,7 @@ export default class InfographicPlugin extends Plugin {
 		const result = parseInfographicSpec(source);
 		if (!result.success) {
 			console.error("[Infographic Plugin] Parse error:", result.error, { source: source.substring(0, 200) });
-			if (this.settings.errorBehavior !== "hide") {
-				showParseError(result.error);
-			}
+			// 错误呈现只走笔记内错误卡片（errorBehavior 三模式），不再弹 Notice——多块/重渲时弹窗会刷屏
 			this.handleError(el, result.error, source);
 			return;
 		}
@@ -113,55 +112,62 @@ export default class InfographicPlugin extends Plugin {
 			onHeightCommit: (height) => persistBlockHeight(this.app, ctx, el, source, height),
 			enableResizeHandles: this.settings.enableResizeHandles,
 			enableZoom: this.settings.enableZoom,
-			onRenderError: (message) => this.handleError(el, message, source),
-			onPanZoomChange: (state) => toolbarControls?.setZoomPercent(state.scale * 100),
+			stylize: buildStylizeConfig(this.settings),
 		});
 		ctx.addChild(renderChild);
 		// PDF 导出等管线可能不触发 onload，这里保证幂等启动
 		renderChild.ensureStarted();
 
+		// 工具栏与右键菜单共用同一份 handlers，两处入口调用相同逻辑
+		const handlers: ToolbarHandlers = {
+			isCentered: () => centered,
+			onToggleCenter: () => {
+				centered = !centered;
+				container.toggleClass("infographic-centered", centered);
+				const align: "center" | "left" | null = centered ? "center" : null;
+				persistFenceUpdate(this.app, ctx, el, source, (f) => setFenceAlign(f, align));
+			},
+			onCopySource: () => {
+				void navigator.clipboard.writeText(source.trim()).then(
+					() => new Notice(i18n.copySourceSuccess),
+					() => new Notice(i18n.copyFailed),
+				);
+			},
+			onCopyImage: () => {
+				const instance = renderChild.getInfographic();
+				if (!instance) return;
+				void (async () => {
+					try {
+						const dataUrl = await instance.toDataURL({ type: "png" });
+						const outcome = await copyImageToClipboard(dataUrl, source);
+						new Notice(outcome === "image" ? i18n.copyImageSuccess : i18n.copyImageFallback);
+					} catch (error) {
+						console.error("[Infographic Plugin] Copy image error:", error);
+						new Notice(i18n.copyFailedWithReason + (error instanceof Error ? error.message : String(error)));
+					}
+				})();
+			},
+			onExport: () => {
+				const instance = renderChild.getInfographic();
+				if (instance) new ExportModal(this.app, instance).open();
+			},
+			onZoomIn: () => renderChild.zoomIn(),
+			onZoomOut: () => renderChild.zoomOut(),
+			onZoomReset: () => renderChild.resetZoom(),
+			onFit: () => {
+				renderChild.fitWidth();
+				persistFenceUpdate(this.app, ctx, el, source, (fence) => clearFenceSize(fence));
+			},
+			onFullscreen: () => this.openFullscreen(result.content, result.isJson, renderChild.getInfographic()),
+		};
 		if (this.settings.showToolbar) {
-			toolbarControls = createToolbar(container, {
-				isCentered: () => centered,
-				onToggleCenter: () => {
-					centered = !centered;
-					container.toggleClass("infographic-centered", centered);
-					const align: "center" | "left" | null = centered ? "center" : null;
-					persistFenceUpdate(this.app, ctx, el, source, (f) => setFenceAlign(f, align));
-				},
-				onCopySource: () => {
-					void navigator.clipboard.writeText(source.trim()).then(
-						() => new Notice(i18n.copySourceSuccess),
-						() => new Notice(i18n.copyFailed),
-					);
-				},
-				onCopyImage: () => {
-					const instance = renderChild.getInfographic();
-					if (!instance) return;
-					void (async () => {
-						try {
-							const dataUrl = await instance.toDataURL({ type: "png" });
-							const outcome = await copyImageToClipboard(dataUrl, source);
-							new Notice(outcome === "image" ? i18n.copyImageSuccess : i18n.copyImageFallback);
-						} catch (error) {
-							console.error("[Infographic Plugin] Copy image error:", error);
-							new Notice(i18n.copyFailedWithReason + (error instanceof Error ? error.message : String(error)));
-						}
-					})();
-				},
-				onExport: () => {
-					const instance = renderChild.getInfographic();
-					if (instance) new ExportModal(this.app, instance).open();
-				},
-				onZoomIn: () => renderChild.zoomIn(),
-				onZoomOut: () => renderChild.zoomOut(),
-				onFit: () => {
-					renderChild.fitWidth();
-					persistFenceUpdate(this.app, ctx, el, source, (fence) => clearFenceSize(fence));
-				},
-				onFullscreen: () => this.openFullscreen(result.content, result.isJson, renderChild.getInfographic()),
-			}, { showZoomControls: this.settings.enableZoom });
+			toolbarControls = createToolbar(container, handlers, { showZoomControls: this.settings.enableZoom });
 		}
+		// 右键快捷菜单：与工具栏同一份 handlers，不受 showToolbar 开关影响
+		container.addEventListener("contextmenu", (event) => {
+			event.preventDefault();
+			openInfographicMenu(handlers, event, { showZoomActions: this.settings.enableZoom });
+		});
 
 		const doc = el.ownerDocument;
 		const settleWin = doc.defaultView;
@@ -179,6 +185,7 @@ export default class InfographicPlugin extends Plugin {
 			content,
 			isJson,
 			theme: this.resolveTheme(),
+			stylize: buildStylizeConfig(this.settings),
 			sourceInstance: instance,
 		}).open();
 	}
@@ -203,25 +210,13 @@ export default class InfographicPlugin extends Plugin {
 		}
 	}
 
-	/** 接管声明式设置读取：默认实现直接操作 loadData，绕开内存 settings；改读 this.settings 保证同步 */
-	getControlValue(key: string): unknown {
-		return (this.settings as unknown as Record<string, unknown>)[key];
-	}
-
-	/** 接管声明式设置写入：更新内存 settings 并落盘，随后防抖重渲染所有打开的笔记 */
-	async setControlValue(key: string, value: unknown): Promise<void> {
-		(this.settings as unknown as Record<string, unknown>)[key] = value;
-		await this.saveSettings();
-		this.scheduleSettingsRerender();
-	}
-
 	async loadSettings() {
 		const data = await this.loadData() as (Partial<InfographicSettings> & { defaultTheme?: string }) | null;
+		// 主题：auto/任意已注册主题 id；兼容旧版 defaultTheme（显式 light/dark 保留，其余归 auto）
 		let theme: ThemeSetting = DEFAULT_SETTINGS.theme;
-		if (data?.theme === "auto" || data?.theme === "light" || data?.theme === "dark") {
+		if (typeof data?.theme === "string" && data.theme) {
 			theme = data.theme;
 		} else if (data?.defaultTheme === "light" || data?.defaultTheme === "dark") {
-			// 旧版 defaultTheme 迁移：显式 light/dark 保留，其余（含 'default'）归 auto
 			theme = data.defaultTheme;
 		}
 		// R5：errorBehavior 合法性校验——手改 data.json 出现非法值时回退默认，防声明式 dropdown 出现空值
@@ -229,6 +224,11 @@ export default class InfographicPlugin extends Plugin {
 		if (data?.errorBehavior === "show-code" || data?.errorBehavior === "show-error" || data?.errorBehavior === "hide") {
 			errorBehavior = data.errorBehavior;
 		}
+		// 风格化：类型走白名单，参数按各自形态校验后回退默认
+		const stylizeTypes: StylizeTypeSetting[] = ["none", "rough", "pattern", "linear-gradient", "radial-gradient"];
+		const stylizeType: StylizeTypeSetting = stylizeTypes.includes(data?.stylizeType as StylizeTypeSetting)
+			? (data!.stylizeType as StylizeTypeSetting)
+			: DEFAULT_SETTINGS.stylizeType;
 		this.settings = {
 			theme,
 			errorBehavior,
@@ -236,6 +236,12 @@ export default class InfographicPlugin extends Plugin {
 			enableZoom: typeof data?.enableZoom === "boolean" ? data.enableZoom : DEFAULT_SETTINGS.enableZoom,
 			showToolbar: typeof data?.showToolbar === "boolean" ? data.showToolbar : DEFAULT_SETTINGS.showToolbar,
 			centerByDefault: typeof data?.centerByDefault === "boolean" ? data.centerByDefault : DEFAULT_SETTINGS.centerByDefault,
+			stylizeType,
+			stylizeRoughness: typeof data?.stylizeRoughness === "number" && Number.isFinite(data.stylizeRoughness) ? data.stylizeRoughness : DEFAULT_SETTINGS.stylizeRoughness,
+			stylizePattern: typeof data?.stylizePattern === "string" && data.stylizePattern in patternOptions() ? data.stylizePattern : DEFAULT_SETTINGS.stylizePattern,
+			stylizeColorFrom: typeof data?.stylizeColorFrom === "string" && /^#[0-9a-fA-F]{6}$/.test(data.stylizeColorFrom) ? data.stylizeColorFrom : DEFAULT_SETTINGS.stylizeColorFrom,
+			stylizeColorTo: typeof data?.stylizeColorTo === "string" && /^#[0-9a-fA-F]{6}$/.test(data.stylizeColorTo) ? data.stylizeColorTo : DEFAULT_SETTINGS.stylizeColorTo,
+			stylizeAngle: typeof data?.stylizeAngle === "number" && Number.isFinite(data.stylizeAngle) ? data.stylizeAngle : DEFAULT_SETTINGS.stylizeAngle,
 		};
 	}
 
@@ -243,20 +249,18 @@ export default class InfographicPlugin extends Plugin {
 		await this.saveData(this.settings);
 	}
 
-	/** 设置变更后防抖重渲染所有打开的笔记，已渲染块立即应用新设置（高度桥接会尽量稳住滚动） */
-	private scheduleSettingsRerender(): void {
+	/**
+	 * 设置变更后防抖刷新所有存活块（由设置页 setControlValue 触发）。
+	 * 就地 update 实例而非重跑渲染管线：previewMode.rerender 命中 Obsidian 代码块渲染缓存，
+	 * 会拿回旧结果（此前"必须关页签重开才生效"的根因）。宽高/缩放不受影响。
+	 */
+	scheduleSettingsRerender(): void {
 		if (this.rerenderTimer !== null) {
 			window.clearTimeout(this.rerenderTimer);
 		}
 		this.rerenderTimer = window.setTimeout(() => {
 			this.rerenderTimer = null;
-			this.app.workspace.iterateAllLeaves((leaf) => {
-				const view = leaf.view;
-				if (view instanceof MarkdownView) {
-					const state = view.getState();
-					void view.setState(state, { history: false });
-				}
-			});
+			applySettingsToAllInfographics(this.resolveTheme(), buildStylizeConfig(this.settings));
 		}, 200);
 	}
 }
