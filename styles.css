@@ -286,22 +286,6 @@
 	color: var(--interactive-accent);
 }
 
-/* 导出弹窗按钮组（上游样式） */
-.infographic-export-modal h2 {
-	margin-top: 0;
-}
-
-.infographic-export-buttons {
-	display: flex;
-	gap: 0.5em;
-	justify-content: flex-end;
-	margin-top: 1em;
-}
-
-.infographic-export-buttons button {
-	padding: 0.4em 1em;
-	border-radius: var(--radius-s);
-}
 
 /* 源码弹窗 */
 .infographic-source-modal .infographic-source-code pre {

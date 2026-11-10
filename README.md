@@ -4,6 +4,22 @@
 
 [**中文文档**](README.zh.md)
 
+## Highlights
+
+Beyond rendering the built-in infographic templates, this plugin ships the interactions notes actually need:
+
+| Capability | Details |
+|---|---|
+| Zoom & pan | Ctrl/Cmd+wheel zoom, drag to pan, double-click or the percentage label to reset — all inside the note, scrolling never hijacked |
+| Fullscreen viewer | Big-canvas review with wheel zoom, pan and full-image export |
+| Export & copy | One-click PNG/SVG from the export menu (no dialog); copy the source or the rendered image |
+| Drag-resize | Edge handles resize the block and persist `width=N` / `height=N` back into the fence |
+| Alignment | `align=center` fence parameter with a toolbar toggle |
+| Themes & styles | Built-in themes (light / dark / hand-drawn — the list follows the library) plus rough / pattern / gradient stylize, applied to open notes live |
+| Right-click menu | Every toolbar action also lives in a context menu (long-press on mobile) |
+| Small-surface aware | The toolbar folds into a "more" menu on narrow blocks and sidebars — nothing overflows |
+
+
 ## Installation
 
 ### Method 1: Install from the Community Plugin Store (Recommended)

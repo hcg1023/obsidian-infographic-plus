@@ -2,7 +2,7 @@ import { App, Menu, Modal, setIcon } from "obsidian";
 import type { Infographic, StylizeConfig } from "@antv/infographic";
 import { PanZoomController } from "./PanZoomController";
 import { renderInfographicInto } from "./InfographicView";
-import { ExportModal } from "../ui/ExportModal";
+import { exportInfographic, openExportMenu } from "../ui/export";
 import { i18n } from "../lang";
 
 export interface FullscreenPayload {
@@ -96,12 +96,14 @@ export class FullscreenModal extends Modal {
 			menu.addItem((item) => item.setTitle(i18n.ariaFitScreen).setIcon("move-horizontal").onClick(() => this.controller?.reset()));
 			menu.addSeparator();
 			menu.addItem((item) => {
-				item.setTitle(i18n.menuExport)
-					.setIcon("download")
-					.onClick(() => {
-						if (this.payload.sourceInstance) new ExportModal(this.app, this.payload.sourceInstance).open();
-					});
-				item.setDisabled(!this.payload.sourceInstance);
+				item.setTitle(i18n.exportPng).setIcon("image");
+				if (this.payload.sourceInstance) item.onClick(() => void exportInfographic(this.payload.sourceInstance!, "png"));
+				else item.setDisabled(true);
+			});
+			menu.addItem((item) => {
+				item.setTitle(i18n.exportSvg).setIcon("file-code");
+				if (this.payload.sourceInstance) item.onClick(() => void exportInfographic(this.payload.sourceInstance!, "svg"));
+				else item.setDisabled(true);
 			});
 			menu.addSeparator();
 			menu.addItem((item) => item.setTitle(i18n.ariaClose).setIcon("x").onClick(() => this.close()));
@@ -128,7 +130,7 @@ export class FullscreenModal extends Modal {
 
 	private buildToolbar(contentEl: HTMLElement): void {
 		const toolbar = contentEl.createDiv({ cls: "infographic-fullscreen-toolbar" });
-		const btn = (icon: string, ariaLabel: string, onClick: () => void): HTMLButtonElement => {
+		const btn = (icon: string, ariaLabel: string, onClick: (event: MouseEvent) => void): HTMLButtonElement => {
 			const b = toolbar.createEl("button", { cls: "infographic-toolbar-btn" });
 			b.setAttribute("aria-label", ariaLabel);
 			b.setAttribute("type", "button");
@@ -144,10 +146,8 @@ export class FullscreenModal extends Modal {
 		btn("zoom-in", i18n.ariaZoomIn, () => this.controller?.zoomBy(1.25));
 		btn("move-horizontal", i18n.ariaFitScreen, () => this.controller?.reset());
 		toolbar.createDiv({ cls: "infographic-toolbar-separator" });
-		const exportBtn = btn("download", i18n.ariaExport, () => {
-			if (this.payload.sourceInstance) {
-				new ExportModal(this.app, this.payload.sourceInstance).open();
-			}
+		const exportBtn = btn("download", i18n.ariaExport, (event) => {
+			openExportMenu(event, this.payload.sourceInstance);
 		});
 		if (!this.payload.sourceInstance) {
 			exportBtn.disabled = true;

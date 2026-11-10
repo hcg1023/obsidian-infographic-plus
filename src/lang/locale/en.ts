@@ -64,7 +64,6 @@ export default {
 	menuCenter: "Center alignment",
 	menuCopySource: "Copy source",
 	menuCopyImage: "Copy image",
-	menuExport: "Export…",
 	menuFullscreen: "Fullscreen",
 
 	// Notices and popups
@@ -80,7 +79,6 @@ export default {
 	renderFailedPrefix: "Failed to render infographic: ",
 	emptyRender: "Rendered result is empty (check the template name and data)",
 
-	exportTitle: "Export infographic",
 	exportPng: "Export as PNG",
 	exportSvg: "Export as SVG",
 	cancel: "Cancel",

@@ -5,7 +5,7 @@ import { buildStylizeConfig, DEFAULT_SETTINGS, ErrorBehavior, InfographicSetting
 import { parseInfographicSpec } from "./parser";
 import { clearFenceSize, getFenceAlign, parseHeightParam, parseWidthParam, persistBlockHeight, persistBlockWidth, persistFenceUpdate, resolveFenceText, setFenceAlign } from "./fence";
 import { applySettingsToAllInfographics, FullscreenModal, getCachedBlockHeight, InfographicRenderChild } from "./renderer";
-import { copyImageToClipboard, createErrorPlaceholder, createToolbar, ExportModal, openInfographicMenu, SourceCodeModal } from "./ui";
+import { copyImageToClipboard, createErrorPlaceholder, createToolbar, exportInfographic, openExportMenu, openInfographicMenu, SourceCodeModal } from "./ui";
 import type { ToolbarControls, ToolbarHandlers } from "./ui";
 import { i18n } from "./lang";
 
@@ -147,9 +147,10 @@ export default class InfographicPlugin extends Plugin {
 					}
 				})();
 			},
-			onExport: () => {
+			onExport: (event) => openExportMenu(event, renderChild.getInfographic()),
+			onExportFormat: (format) => {
 				const instance = renderChild.getInfographic();
-				if (instance) new ExportModal(this.app, instance).open();
+				if (instance) void exportInfographic(instance, format);
 			},
 			onZoomIn: () => renderChild.zoomIn(),
 			onZoomOut: () => renderChild.zoomOut(),

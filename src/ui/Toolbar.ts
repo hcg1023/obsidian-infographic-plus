@@ -7,7 +7,9 @@ export interface ToolbarHandlers {
 	onToggleCenter(): void;
 	onCopySource(): void;
 	onCopyImage(): void;
-	onExport(): void;
+	onExport(event: MouseEvent): void;
+	/** 右键菜单直达导出（无二次菜单）：png/svg */
+	onExportFormat(format: "png" | "svg"): void;
 	onZoomIn(): void;
 	onZoomOut(): void;
 	/** 仅复位缩放/平移到 100%，不还原块宽、不改源码（区别于 onFit） */
@@ -20,7 +22,7 @@ export interface ToolbarControls {
 	setZoomPercent(percent: number): void;
 }
 
-function toolbarButton(toolbar: HTMLElement, icon: string, ariaLabel: string, onClick: () => void, tier?: "low" | "mid"): HTMLButtonElement {
+function toolbarButton(toolbar: HTMLElement, icon: string, ariaLabel: string, onClick: (event: MouseEvent) => void, tier?: "low" | "mid"): HTMLButtonElement {
 	const btn = toolbar.createEl("button", {
 		cls: tier ? `infographic-toolbar-btn infographic-toolbar-${tier}` : "infographic-toolbar-btn",
 	});
@@ -43,7 +45,8 @@ export function openInfographicMenu(handlers: ToolbarHandlers, event: MouseEvent
 	menu.addSeparator();
 	menu.addItem((item) => item.setTitle(i18n.menuCopySource).setIcon("copy").onClick(() => handlers.onCopySource()));
 	menu.addItem((item) => item.setTitle(i18n.menuCopyImage).setIcon("image").onClick(() => handlers.onCopyImage()));
-	menu.addItem((item) => item.setTitle(i18n.menuExport).setIcon("download").onClick(() => handlers.onExport()));
+	menu.addItem((item) => item.setTitle(i18n.exportPng).setIcon("image").onClick(() => handlers.onExportFormat("png")));
+	menu.addItem((item) => item.setTitle(i18n.exportSvg).setIcon("file-code").onClick(() => handlers.onExportFormat("svg")));
 	menu.addSeparator();
 	if (options?.showZoomActions !== false) {
 		menu.addItem((item) => item.setTitle(i18n.ariaZoomOut).setIcon("zoom-out").onClick(() => handlers.onZoomOut()));
@@ -71,7 +74,7 @@ export function createToolbar(parent: HTMLElement, handlers: ToolbarHandlers, op
 
 	toolbarButton(toolbar, "copy", i18n.ariaCopySource, () => handlers.onCopySource(), "low");
 	toolbarButton(toolbar, "image", i18n.ariaCopyImage, () => handlers.onCopyImage(), "low");
-	toolbarButton(toolbar, "download", i18n.ariaExport, () => handlers.onExport(), "low");
+	toolbarButton(toolbar, "download", i18n.ariaExport, (event) => handlers.onExport(event), "low");
 
 	let zoomLabel: HTMLElement | null = null;
 	if (options?.showZoomControls !== false) {

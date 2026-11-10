@@ -1,10 +1,9 @@
 {
 	"id": "antv-infographic-plus",
 	"name": "AntV Infographic",
-	"version": "1.4.0",
+	"version": "1.5.0",
 	"minAppVersion": "1.13.0",
-	"description": "Render infographic diagrams using @antv/infographic.",
-	"author": "hcg1023",
+	"description": "Render infographics in notes: dual JSON/DSL syntax, zoom & pan, fullscreen viewer, one-click PNG/SVG export, drag-resize persisted to the fence, themes and rough/pattern/gradient styles.",
 	"authorUrl": "https://github.com/hcg1023",
 	"isDesktopOnly": false
 }

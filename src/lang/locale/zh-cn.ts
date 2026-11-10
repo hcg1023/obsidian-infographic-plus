@@ -66,7 +66,6 @@ const zhCn: typeof en = {
 	menuCenter: "居中对齐",
 	menuCopySource: "复制源码",
 	menuCopyImage: "复制图片",
-	menuExport: "导出…",
 	menuFullscreen: "全屏查看",
 
 	// Notices and popups
@@ -82,7 +81,6 @@ const zhCn: typeof en = {
 	renderFailedPrefix: "信息图表渲染失败：",
 	emptyRender: "渲染结果为空（请检查 template 模板名与数据是否有效）",
 
-	exportTitle: "导出信息图表",
 	exportPng: "导出为 PNG",
 	exportSvg: "导出为 SVG",
 	cancel: "取消",
