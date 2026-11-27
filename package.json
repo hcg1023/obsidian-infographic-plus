@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-infographic-plus",
-	"version": "1.5.0",
+	"version": "1.5.1",
 	"description": "Render infographics in Obsidian: zoom & pan, fullscreen viewer, PNG/SVG export, drag-resize, themes and stylize, based on @antv/infographic",
 	"main": "main.js",
 	"type": "module",
