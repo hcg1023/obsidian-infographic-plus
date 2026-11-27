@@ -172,7 +172,9 @@
 	display: none;
 }
 
-/* PDF/打印：隐藏交互件（无 print 管线，直接打印当前渲染） */
+/* PDF/打印：隐藏交互件、viewport 不裁切。
+   SVG 随容器等比缩放：图宽是渲染时按导出容器量出后写死在 SVG 上的，而 PDF 按纸张重新布局后正文更窄，
+   不缩放则右侧被裁。除 @media print 外再写一份 .print 前缀规则，不依赖媒体查询（Obsidian 导出容器为 body > .print）。 */
 @media print {
 	.infographic-toolbar,
 	.infographic-resize-handle {
@@ -181,6 +183,15 @@
 	.infographic-viewport {
 		overflow: visible;
 	}
+	.infographic-content > svg {
+		max-width: 100%;
+		height: auto;
+	}
+}
+
+.print .infographic-content > svg {
+	max-width: 100%;
+	height: auto;
 }
 
 /* hover 工具栏（右下角，独立 chip；按块宽分级折叠见下方容器查询） */

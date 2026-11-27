@@ -21,6 +21,9 @@ const INFOGRAPHIC_TEMPLATE = `{
 }`;
 
 
+/** 导出为 PDF 时等待图标等异步资源就绪的上限；超时则按现状导出，不卡住导出流程 */
+const EXPORT_RESOURCE_TIMEOUT_MS = 3000;
+
 export default class InfographicPlugin extends Plugin {
 	settings: InfographicSettings;
 	private rerenderTimer: number | null = null;
@@ -29,7 +32,9 @@ export default class InfographicPlugin extends Plugin {
 		await this.loadSettings();
 		this.addSettingTab(new InfographicSettingTab(this.app, this));
 		this.registerMarkdownCodeBlockProcessor("infographic", (source, el, ctx) => {
-			void this.processInfographicBlock(source, el, ctx);
+			const renderChild = this.processInfographicBlock(source, el, ctx);
+			// 导出管线（块位于 Obsidian 的导出容器 body > .print 内）把"异步资源就绪"作为返回值交给 Obsidian 等待（它渲染完只等 200ms）；日常渲染不等待
+			return renderChild && el.closest(".print") ? renderChild.whenLoaded(EXPORT_RESOURCE_TIMEOUT_MS) : undefined;
 		});
 		this.registerCommands();
 	}
@@ -54,8 +59,9 @@ export default class InfographicPlugin extends Plugin {
 		});
 	}
 
-	private isDarkMode(): boolean {
-		return this.app.workspace.containerEl.ownerDocument.body.classList.contains("theme-dark");
+	/** 传 themeRoot 时以它为准：导出时块位于独立的浅色容器里（桌面端是另一个窗口的 body，移动端是 .print.theme-light），与主窗口主题无关 */
+	private isDarkMode(themeRoot: Element = this.app.workspace.containerEl.ownerDocument.body): boolean {
+		return themeRoot.classList.contains("theme-dark");
 	}
 
 	/** auto 主题在此刻解析为 light/dark（每次渲染/开全屏时现取，切主题后重渲即生效） */
@@ -66,17 +72,18 @@ export default class InfographicPlugin extends Plugin {
 		return this.settings.theme;
 	}
 
-	private async processInfographicBlock(
+	/** 同步渲染一个块并返回其渲染子组件（解析失败返回 null） */
+	private processInfographicBlock(
 		source: string,
 		el: HTMLElement,
 		ctx: MarkdownPostProcessorContext,
-	): Promise<void> {
+	): InfographicRenderChild | null {
 		const result = parseInfographicSpec(source);
 		if (!result.success) {
 			console.error("[Infographic Plugin] Parse error:", result.error, { source: source.substring(0, 200) });
 			// 错误呈现只走笔记内错误卡片（errorBehavior 三模式），不再弹 Notice——多块/重渲时弹窗会刷屏
 			this.handleError(el, result.error, source);
-			return;
+			return null;
 		}
 		// 高度桥接：重建窗口内先撑起上次高度，渲染完成后撤除（见下方 rAF）
 		const cachedHeight = getCachedBlockHeight(result.content);
@@ -105,7 +112,7 @@ export default class InfographicPlugin extends Plugin {
 			content: result.content,
 			isJson: result.isJson,
 			theme: this.settings.theme,
-			isDarkMode: this.isDarkMode(),
+			isDarkMode: this.isDarkMode(el.closest(".theme-dark, .theme-light") ?? el.ownerDocument.body),
 			explicitWidth: fenceWidth ?? undefined,
 			explicitHeight: fenceHeight ?? undefined,
 			onWidthCommit: (width) => persistBlockWidth(this.app, ctx, el, source, width),
@@ -179,6 +186,7 @@ export default class InfographicPlugin extends Plugin {
 				});
 			});
 		}
+		return renderChild;
 	}
 
 	private openFullscreen(content: string, isJson: boolean, instance: Infographic | null): void {

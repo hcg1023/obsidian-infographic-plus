@@ -150,6 +150,9 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 	private blockOwnTheme: string | undefined;
 	/** 块级 JSON 自带主题配置（其 stylize 优先于插件设置） */
 	private blockOwnThemeConfig: ThemeConfig | undefined;
+	/** 当前这次渲染的异步资源（图标等）是否就绪：rendered 时复位，loaded 时放行等待者 */
+	private loaded = false;
+	private loadedWaiters: Array<() => void> = [];
 
 	constructor(containerEl: HTMLElement, options: RenderOptions) {
 		super(containerEl);
@@ -170,6 +173,23 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 
 	getPanZoom(): PanZoomController | null {
 		return this.panZoom;
+	}
+
+	/**
+	 * 等当前这次渲染的异步资源（图标需联网加载）就绪；渲染失败、实例销毁或超时都会直接返回，不阻塞调用方。
+	 * 供导出管线使用：Obsidian 导出只等处理器返回的 Promise。
+	 */
+	whenLoaded(timeoutMs: number): Promise<void> {
+		if (this.loaded) return Promise.resolve();
+		return new Promise<void>((resolve) => {
+			const done = () => {
+				window.clearTimeout(timer);
+				this.loadedWaiters = this.loadedWaiters.filter((waiter) => waiter !== done);
+				resolve();
+			};
+			const timer = window.setTimeout(done, timeoutMs);
+			this.loadedWaiters.push(done);
+		});
 	}
 
 	zoomIn(): void {
@@ -297,6 +317,10 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 					explicitHeight: this.options.explicitHeight,
 				},
 				(instance) => {
+					instance.on("rendered", () => {
+						this.loaded = false;
+					});
+					instance.on("loaded", () => this.settleLoaded());
 					instance.on("error", (error: unknown) => {
 						const message = error instanceof Error ? error.message : String(error);
 						console.error("[Infographic Plugin] Render error event:", message);
@@ -343,11 +367,20 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 
 	/** 渲染失败统一出口：优先交宿主（走错误三模式），否则本地占位卡兜底 */
 	private reportRenderError(message: string): void {
+		this.settleLoaded();
 		if (this.options.onRenderError) {
 			this.options.onRenderError(message);
 			return;
 		}
 		this.renderError(message);
+	}
+
+	/** 放行 whenLoaded 的全部等待者（资源就绪、渲染失败、实例销毁共用） */
+	private settleLoaded(): void {
+		this.loaded = true;
+		const waiters = this.loadedWaiters;
+		this.loadedWaiters = [];
+		for (const resolve of waiters) resolve();
 	}
 
 	private renderError(message: string): void {
@@ -535,5 +568,6 @@ export class InfographicRenderChild extends MarkdownRenderChild {
 			this.resizeObserver = null;
 		}
 		this.destroyInfographic();
+		this.settleLoaded();
 	}
 }
